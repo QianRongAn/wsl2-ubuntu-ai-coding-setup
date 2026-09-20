@@ -20,6 +20,8 @@
 - [10. 脚本功能详解](#10-脚本功能详解)
 - [11. 排障手册](#11-排障手册)
 - [12. 安全须知](#12-安全须知)
+- [13. 使用手册（装好之后怎么用）](#13-使用手册装好之后怎么用)
+- [14. 推广素材](#14-推广素材)
 
 ---
 
@@ -48,8 +50,15 @@ wsl-ubuntu-setup/
 │   ├── 02-setup-claude.sh           ← WSL 内执行：Node.js + Claude Code + DeepSeek 配置
 │   ├── 03-verify.sh                 ← WSL 内执行：逐项自动化验证
 │   └── 04-verify.ps1                ← Windows 执行：概览验证
-└── config/
-    └── deepseek-settings.example.json   ← DeepSeek 配置模板（Key 为占位符）
+├── config/
+│   └── deepseek-settings.example.json   ← DeepSeek 配置模板（Key 为占位符）
+├── docs/
+│   └── USAGE.md                     ← 装好之后怎么用 Claude Code（日常手册）
+└── promo/
+    ├── repo-promo.html              ← 推广图 HTML 源（改文案后可重新渲染）
+    ├── repo-promo.png               ← 推广图成品（2880×1520）
+    ├── xiaohongshu.md               ← 小红书文案（含标题备选 + 配图建议）
+    └── xiaohongshu.txt              ← 小红书文案纯文本版（可直接复制）
 ```
 
 > **WSL 安装包不在仓库内**：`wsl.2.7.14.0.x64.msi` 有 247MB，超过 GitHub 单文件 100MB 上限，需自行下载（见 [5.2](#52-准备-wsl-安装包))。
@@ -403,9 +412,10 @@ D 组做真实端到端调用，超时 180 秒。
 | `wsl --install` 要求 Microsoft Store | 走商店通道被墙 | 加 `--web-download` |
 | 提示虚拟化未启用 | BIOS 未开 VT-x / SVM | 进 BIOS 开启 |
 | 网络不通 / DNS 失败 | resolv.conf 异常 | `sudo rm /etc/resolv.conf` 后 `wsl --shutdown` |
-| `claude` 命令找不到 | nvm 未加载 | `source ~/.nvm/nvm.sh`，或重开终端 |
+| `claude` 命令找不到 | PATH 未加载 | 新开终端，或 `export PATH="$HOME/.local/node/bin:$PATH"` |
 | 模型报 404 / unknown model | 模型名不对 | 查 `/models` 真实 ID 后改配置 |
 | 仍弹 Claude Code 登录页 | settings.json 缺失或非法 | `jq -e . ~/.claude/settings.json` 校验 |
+| **WSL 内下载卡死 / 连不上 GitHub** | WSL 默认 NAT 模式，用不了 Windows 的 localhost 代理 | 脚本 v3 已移除全部 GitHub 依赖（Node 走 npmmirror、npm 走国内镜像），无需代理 |
 
 ### 常用运维命令
 
@@ -434,6 +444,41 @@ D 组做真实端到端调用，超时 180 秒。
 
 ---
 
+## 13. 使用手册（装好之后怎么用）
+
+安装完成只是起点。日常怎么用 Claude Code、斜杠命令清单、省 token 技巧、`CLAUDE.md` 怎么写、DeepSeek 报错速查，全部在：
+
+➡️ **[`docs/USAGE.md`](./docs/USAGE.md)**
+
+最值得先做的三件事：
+
+1. 进项目目录再启动（`cd ~/项目 && claude`），别在 `~` 里启动
+2. 新项目先跑 `/init` 生成 `CLAUDE.md`
+3. 出问题先敲 `/doctor`
+
+---
+
+## 14. 推广素材
+
+`promo/` 下是社媒推广用的现成物料：
+
+| 文件 | 用途 |
+|---|---|
+| `repo-promo.png` | 仓库页风格推广图（2880×1520 高清 PNG），适合做首图 |
+| `repo-promo.html` | 推广图 HTML 源。改文案/配色后，用 Chrome 无头模式重新渲染即可 |
+
+重新出图：
+
+```bash
+chrome --headless=new --disable-gpu --hide-scrollbars \
+  --force-device-scale-factor=2 --window-size=1440,760 \
+  --screenshot=repo-promo.png repo-promo.html
+```
+
+> 注：`repo-promo.png` 中侧栏的 star / fork / view 数字为**装饰性占位值**，并非真实数据，对外发布前请替换为真实数字或移除。
+
+---
+
 ## 附：验证过的版本组合
 
 | 组件 | 版本 |
@@ -441,6 +486,6 @@ D 组做真实端到端调用，超时 180 秒。
 | WSL | 2.7.14 |
 | Ubuntu | 26.04.1 LTS |
 | 内核 | 6.18.33.2-microsoft-standard-WSL2 |
-| Node.js | nvm 安装的 LTS（需 ≥ 18） |
+| Node.js | v22 LTS（从 npmmirror 镜像下载，装到 `~/.local/node`，需 ≥ 18） |
 | Claude Code | `@anthropic-ai/claude-code` 最新版 |
 | DeepSeek 模型 | `deepseek-v4-pro[1m]` / `deepseek-v4-flash[1m]` |

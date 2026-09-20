@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  html,body { width:1440px; height:760px; overflow:hidden; }
+  body {
+    font-family:"Segoe UI","Microsoft YaHei",-apple-system,sans-serif;
+    background:linear-gradient(120deg,#1a3a8f 0%,#3b6fd4 30%,#7aa0e8 60%,#b48ce0 100%);
+    display:flex; align-items:center; justify-content:center;
+  }
+  .card {
+    width:1340px; height:690px; background:#ffffff; border-radius:14px;
+    box-shadow:0 24px 70px rgba(10,20,60,.45);
+    overflow:hidden; display:flex; flex-direction:column;
+  }
+  /* ===== card header ===== */
+  .head {
+    display:flex; align-items:center; gap:14px;
+    padding:16px 28px; border-bottom:1px solid #d8dee4; background:#f6f8fa;
+  }
+  .gh-mark { width:34px; height:34px; fill:#1f2328; }
+  .repo-title { font-size:21px; color:#1f2328; display:flex; align-items:center; gap:8px; font-weight:400; }
+  .repo-title .octicon-book { width:18px; height:18px; fill:#59636e; }
+  .repo-title a { color:#0969da; font-weight:600; text-decoration:none; }
+  .repo-title .sep { color:#59636e; font-weight:400; }
+  .badge {
+    font-size:12px; color:#59636e; border:1px solid #d1d9e0; border-radius:999px;
+    padding:2px 10px; background:#fff;
+  }
+  .head .spacer { flex:1; }
+  .hbtn {
+    display:flex; align-items:center; gap:6px; font-size:13px; color:#1f2328;
+    border:1px solid #d1d9e0; border-radius:6px; padding:5px 12px; background:#f6f8fa;
+  }
+  .hbtn svg { width:15px; height:15px; fill:#59636e; }
+  .hbtn .cnt {
+    background:#e7ebef; border-radius:999px; font-size:11.5px; padding:1px 7px; color:#1f2328;
+  }
+  .hbtn.green { background:#1f883d; border-color:rgba(31,35,40,0.15); }
+  .hbtn.green svg { fill:#fff; }
+  .hbtn.green { color:#fff; }
+  .hbtn.green .cnt { background:rgba(255,255,255,.25); color:#fff; }
+  /* ===== body ===== */
+  .body { flex:1; display:flex; gap:0; padding:20px 28px 0 28px; min-height:0; }
+  .main { flex:1; min-width:0; padding-right:28px; display:flex; flex-direction:column; }
+  /* branch bar */
+  .branchbar { display:flex; align-items:center; gap:10px; margin-bottom:14px; }
+  .branch-btn {
+    display:flex; align-items:center; gap:6px; font-size:13.5px; font-weight:600; color:#1f2328;
+    border:1px solid #d1d9e0; border-radius:6px; padding:5px 12px; background:#f6f8fa;
+  }
+  .branch-btn svg { width:15px; height:15px; fill:#59636e; }
+  .meta { font-size:13.5px; color:#59636e; display:flex; gap:14px; align-items:center; }
+  .meta b { color:#1f2328; font-weight:600; }
+  .search {
+    margin-left:auto; display:flex; align-items:center; gap:8px;
+    border:1px solid #d1d9e0; border-radius:6px; padding:5px 12px;
+    color:#59636e; font-size:13px; background:#f6f8fa; min-width:260px;
+  }
+  .search svg { width:14px; height:14px; fill:#59636e; flex:none; }
+  .search .kbd { border:1px solid #d1d9e0; border-radius:5px; padding:0 6px; font-size:11.5px; margin-left:14px; }
+  /* commit row */
+  .commit {
+    display:flex; align-items:center; gap:10px; padding:11px 16px;
+    border:1px solid #d1d9e0; border-bottom:none; border-radius:6px 6px 0 0; background:#f6f8fa;
+    font-size:13.5px; color:#1f2328;
+  }
+  .avatar { width:24px; height:24px; border-radius:50%; background:linear-gradient(135deg,#0969da,#8250df); color:#fff; font-size:12px; font-weight:700; display:flex; align-items:center; justify-content:center; }
+  .commit .who { font-weight:600; color:#1f2328; }
+  .commit .msg { color:#1f2328; }
+  .commit .sha { font-family:Consolas,monospace; font-size:12.5px; color:#1f2328; background:#e7ebef; border-radius:6px; padding:2px 7px; }
+  .commit .time { margin-left:auto; color:#59636e; }
+  .commit .hist { display:flex; align-items:center; gap:5px; color:#59636e; font-size:13px; }
+  .commit .hist svg { width:14px; height:14px; fill:#59636e; }
+  /* file table */
+  table.files { width:100%; border-collapse:collapse; border:1px solid #d1d9e0; border-radius:0 0 6px 6px; overflow:hidden; }
+  table.files tr { border-bottom:1px solid #d8dee4; background:#fff; }
+  table.files tr:last-child { border-bottom:none; }
+  table.files td { padding:10px 16px; font-size:14px; color:#1f2328; }
+  td.ic { width:30px; }
+  td.ic svg { width:16px; height:16px; display:block; }
+  .folder svg { fill:#54aeff; }
+  .fileic svg { fill:#8c959f; }
+  td.name a { color:#1f2328; font-weight:500; text-decoration:none; }
+  td.name a:hover { color:#0969da; }
+  td.cm { color:#59636e; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; max-width:0; }
+  td.name { width:280px; }
+  td.tm { width:140px; text-align:right; color:#59636e; }
+  /* readme */
+  .readme {
+    margin-top:18px; border:1px solid #d1d9e0; border-radius:6px; flex:1; min-height:0; overflow:hidden;
+  }
+  .readme .rhead {
+    display:flex; align-items:center; gap:8px; padding:10px 16px; background:#f6f8fa;
+    border-bottom:1px solid #d1d9e0; font-size:13.5px; font-weight:600; color:#1f2328;
+  }
+  .readme .rhead svg { width:16px; height:16px; fill:#59636e; }
+  .readme .rhead .pen { margin-left:auto; width:15px; height:15px; fill:#59636e; }
+  .rbody { padding:16px 22px; font-size:13.5px; color:#1f2328; line-height:1.75; }
+  .rbody h1 { font-size:19px; padding-bottom:8px; border-bottom:1px solid #d8dee4; margin-bottom:10px; }
+  .rbody p { margin-bottom:8px; color:#39424a; }
+  .rbody code { font-family:Consolas,monospace; font-size:12.5px; background:#eff2f5; border-radius:4px; padding:1px 6px; color:#1f2328; }
+  /* ===== sidebar ===== */
+  .side { width:300px; border-left:1px solid #d8dee4; padding-left:24px; font-size:13.5px; color:#1f2328; }
+  .side h3 { font-size:14px; margin-bottom:8px; }
+  .side .desc { color:#39424a; line-height:1.65; margin-bottom:12px; }
+  .topics { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:16px; }
+  .topic {
+    color:#0969da; background:#ddf4ff; font-size:12px; font-weight:500;
+    border-radius:999px; padding:3px 11px;
+  }
+  .stat { display:flex; align-items:center; gap:9px; padding:6px 0; color:#1f2328; }
+  .stat svg { width:16px; height:16px; fill:#59636e; }
+  .stat b { font-weight:600; }
+  .stat .lbl { color:#59636e; }
+  .lang { margin-top:14px; }
+  .langbar { display:flex; height:9px; border-radius:999px; overflow:hidden; margin:9px 0 8px; }
+  .langbar div { height:100%; }
+  .langrow { display:flex; flex-wrap:wrap; gap:6px 16px; font-size:12.5px; color:#39424a; }
+  .dot { display:inline-block; width:9px; height:9px; border-radius:50%; margin-right:5px; }
+  .side .divider { border-top:1px solid #d8dee4; margin:16px 0; }
+  .side h4 { font-size:14px; margin-bottom:8px; }
+  .rel { color:#59636e; font-size:13px; }
+</style>
+</head>
+<body>
+<div class="card">
+
+  <div class="head">
+    <svg class="gh-mark" viewBox="0 0 16 16"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/></svg>
+    <div class="repo-title">
+      <svg class="octicon-book" viewBox="0 0 16 16"><path d="M0 1.75A.75.75 0 0 1 .75 1h4.253c1.227 0 2.317.59 3 1.501A3.743 3.743 0 0 1 11.006 1h4.245a.75.75 0 0 1 .75.75v10.5a.75.75 0 0 1-.75.75h-4.507a2.25 2.25 0 0 0-1.591.659l-.622.621a.75.75 0 0 1-1.06 0l-.622-.621A2.25 2.25 0 0 0 5.258 13H.75a.75.75 0 0 1-.75-.75Zm7.251 10.324.004-5.073-.002-2.253A2.25 2.25 0 0 0 5.003 2.5H1.5v9h3.757a3.75 3.75 0 0 1 1.994.574ZM8.755 4.75l-.004 7.322a3.752 3.752 0 0 1 1.992-.572H14.5v-9h-3.495a2.25 2.25 0 0 0-2.25 2.25Z"/></svg>
+      <a>QianRongAn</a><span class="sep">/</span><a>wsl2-ubuntu-claude-code-setup</a>
+      <span class="badge">Public</span>
+    </div>
+    <div class="spacer"></div>
+    <div class="hbtn"><svg viewBox="0 0 16 16"><path d="M8 .25a.75.75 0 0 1 .673.418l1.882 3.815 4.21.612a.75.75 0 0 1 .416 1.279l-3.046 2.97.719 4.192a.751.751 0 0 1-1.088.791L8 12.347l-3.766 1.98a.75.75 0 0 1-1.088-.79l.72-4.194L.818 6.374a.75.75 0 0 1 .416-1.28l4.21-.611L7.327.668A.75.75 0 0 1 8 .25Z"/></svg>Star</div>
+    <div class="hbtn"><svg viewBox="0 0 16 16"><path d="M5 5.372v.878c0 .414.336.75.75.75h4.5a.75.75 0 0 0 .75-.75v-.878a2.25 2.25 0 1 1 1.5 0v.878a2.25 2.25 0 0 1-2.25 2.25h-1.5v2.128a2.251 2.251 0 1 1-1.5 0V8.5h-1.5A2.25 2.25 0 0 1 3.5 6.25v-.878a2.25 2.25 0 1 1 1.5 0ZM5 3.25a.75.75 0 1 0-1.5 0 .75.75 0 0 0 1.5 0Zm6.75.75a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5Zm-3 8.75a.75.75 0 1 0-1.5 0 .75.75 0 0 0 1.5 0Z"/></svg>Fork</div>
+    <div class="hbtn green"><svg viewBox="0 0 16 16"><path d="M8 .25a.75.75 0 0 1 .673.418l1.882 3.815 4.21.612a.75.75 0 0 1 .416 1.279l-3.046 2.97.719 4.192a.751.751 0 0 1-1.088.791L8 12.347l-3.766 1.98a.75.75 0 0 1-1.088-.79l.72-4.194L.818 6.374a.75.75 0 0 1 .416-1.28l4.21-.611L7.327.668A.75.75 0 0 1 8 .25Z"/></svg>Star</div>
+  </div>
+
+  <div class="body">
+    <div class="main">
+      <div class="branchbar">
+        <div class="branch-btn"><svg viewBox="0 0 16 16"><path d="M9.5 3.25a2.25 2.25 0 1 1 3 2.122V6A2.5 2.5 0 0 1 10 8.5H6a1 1 0 0 0-1 1v1.128a2.251 2.251 0 1 1-1.5 0V5.372a2.25 2.25 0 1 1 1.5 0v1.836A2.492 2.492 0 0 1 6 7h4a1 1 0 0 0 1-1v-.628A2.25 2.25 0 0 1 9.5 3.25Zm-6 0a.75.75 0 1 0 1.5 0 .75.75 0 0 0-1.5 0Zm8.25-.75a.75.75 0 1 0 0 1.5.75.75 0 0 0 0-1.5ZM4.25 12a.75.75 0 1 0 0 1.5.75.75 0 0 0 0-1.5Z"/></svg>main
+          <svg viewBox="0 0 16 16"><path d="M12.78 5.22a.749.749 0 0 1 0 1.06l-4.25 4.25a.749.749 0 0 1-1.06 0L3.22 6.28a.749.749 0 1 1 1.06-1.06L8 8.939l3.72-3.719a.749.749 0 0 1 1.06 0Z"/></svg>
+        </div>
+        <div class="meta"><b>1</b> 分支 <span>·</span> <b>0</b> 标签</div>
+        <div class="search"><svg width="14" height="14" viewBox="0 0 16 16"><path d="M10.68 11.74a6 6 0 0 1-7.922-8.982 6 6 0 0 1 8.982 7.922l3.04 3.04a.749.749 0 0 1-1.06 1.06ZM11.5 7a4.499 4.499 0 1 0-8.997 0A4.499 4.499 0 0 0 11.5 7Z"/></svg>转到文件<span class="kbd">t</span></div>
+        <div class="hbtn green" style="font-size:13px;"><svg viewBox="0 0 16 16"><path d="M2 3.75C2 2.784 2.784 2 3.75 2h6.586c.464 0 .909.184 1.237.513l2.914 2.914c.329.328.513.773.513 1.237v5.586A1.75 1.75 0 0 1 13.25 14h-9.5A1.75 1.75 0 0 1 2 12.25Zm1.75-.25a.25.25 0 0 0-.25.25v8.5c0 .138.112.25.25.25h9.5a.25.25 0 0 0 .25-.25V6.664a.25.25 0 0 0-.073-.177l-2.914-2.914a.25.25 0 0 0-.177-.073ZM6 5.25a.75.75 0 0 1 .75-.75h3.5a.75.75 0 1 1 0 1.5h-3.5A.75.75 0 0 1 6 5.25Z"/></svg>Code</div>
+      </div>
+
+      <div class="commit">
+        <div class="avatar">Q</div>
+        <span class="who">QianRongAn</span>
+        <span class="msg">docs: WSL2 + Ubuntu + Claude Code(DeepSeek) 完整配置工程与排障手册</span>
+        <span class="sha">74dd362</span>
+        <span class="time">· 1 天前</span>
+        <span class="hist"><svg viewBox="0 0 16 16"><path d="M1.643 3.143.427 1.927A.25.25 0 0 0 0 2.104V5.75c0 .138.112.25.25.25h3.646a.25.25 0 0 0 .177-.427L2.715 4.215a6.5 6.5 0 1 1-1.18 4.458v-.001a.75.75 0 1 0-1.499.04 8 8 0 1 0 1.607-5.569Z"/></svg><b style="color:#1f2328;">1</b> 次提交</span>
+      </div>
+
+      <table class="files">
+        <tr class="folder"><td class="ic"><svg viewBox="0 0 16 16"><path d="M1.75 1A1.75 1.75 0 0 0 0 2.75v10.5C0 14.216.784 15 1.75 15h12.5A1.75 1.75 0 0 0 16 13.25v-8.5A1.75 1.75 0 0 0 14.25 3H7.5a.25.25 0 0 1-.2-.1l-.9-1.2C6.07 1.26 5.55 1 5 1Z"/></svg></td>
+          <td class="name"><a>scripts</a></td><td class="cm">WSL 安装（三级回退）· Claude Code + DeepSeek 一键配置 · 双端验证</td><td class="tm">1 天前</td></tr>
+        <tr class="folder"><td class="ic"><svg viewBox="0 0 16 16"><path d="M1.75 1A1.75 1.75 0 0 0 0 2.75v10.5C0 14.216.784 15 1.75 15h12.5A1.75 1.75 0 0 0 16 13.25v-8.5A1.75 1.75 0 0 0 14.25 3H7.5a.25.25 0 0 1-.2-.1l-.9-1.2C6.07 1.26 5.55 1 5 1Z"/></svg></td>
+          <td class="name"><a>config</a></td><td class="cm">DeepSeek 配置模板（占位符，不含真实凭证）</td><td class="tm">1 天前</td></tr>
+        <tr class="fileic"><td class="ic"><svg viewBox="0 0 16 16"><path d="M2 1.75C2 .784 2.784 0 3.75 0h6.586c.464 0 .909.184 1.237.513l2.914 2.914c.329.328.513.773.513 1.237v9.586A1.75 1.75 0 0 1 13.25 16h-9.5A1.75 1.75 0 0 1 2 14.25Zm8.5-.25v2.75c0 .138.112.25.25.25h2.75Z"/></svg></td>
+          <td class="name"><a>.gitattributes</a></td><td class="cm">强制 .sh 使用 LF，防止 bad interpreter</td><td class="tm">1 天前</td></tr>
+        <tr class="fileic"><td class="ic"><svg viewBox="0 0 16 16"><path d="M2 1.75C2 .784 2.784 0 3.75 0h6.586c.464 0 .909.184 1.237.513l2.914 2.914c.329.328.513.773.513 1.237v9.586A1.75 1.75 0 0 1 13.25 16h-9.5A1.75 1.75 0 0 1 2 14.25Zm8.5-.25v2.75c0 .138.112.25.25.25h2.75Z"/></svg></td>
+          <td class="name"><a>.gitignore</a></td><td class="cm">排除密钥与大文件</td><td class="tm">1 天前</td></tr>
+        <tr class="fileic"><td class="ic"><svg viewBox="0 0 16 16"><path d="M2 1.75C2 .784 2.784 0 3.75 0h6.586c.464 0 .909.184 1.237.513l2.914 2.914c.329.328.513.773.513 1.237v9.586A1.75 1.75 0 0 1 13.25 16h-9.5A1.75 1.75 0 0 1 2 14.25Zm8.5-.25v2.75c0 .138.112.25.25.25h2.75Z"/></svg></td>
+          <td class="name"><a>README.md</a></td><td class="cm">完整流程文档 + 实测数据 + 排障手册</td><td class="tm">1 天前</td></tr>
+      </table>
+
+      <div class="readme">
+        <div class="rhead"><svg viewBox="0 0 16 16"><path d="M0 1.75A.75.75 0 0 1 .75 1h4.253c1.227 0 2.317.59 3 1.501A3.743 3.743 0 0 1 11.006 1h4.245a.75.75 0 0 1 .75.75v10.5a.75.75 0 0 1-.75.75h-4.507a2.25 2.25 0 0 0-1.591.659l-.622.621a.75.75 0 0 1-1.06 0l-.622-.621A2.25 2.25 0 0 0 5.258 13H.75a.75.75 0 0 1-.75-.75Zm7.251 10.324.004-5.073-.002-2.253A2.25 2.25 0 0 0 5.003 2.5H1.5v9h3.757a3.75 3.75 0 0 1 1.994.574ZM8.755 4.75l-.004 7.322a3.752 3.752 0 0 1 1.992-.572H14.5v-9h-3.495a2.25 2.25 0 0 0-2.25 2.25Z"/></svg>README.md
+          <svg class="pen" viewBox="0 0 16 16"><path d="M11.013 1.427a1.75 1.75 0 0 1 2.474 0l1.086 1.086a1.75 1.75 0 0 1 0 2.474l-8.61 8.61c-.21.21-.47.364-.756.445l-3.251.93a.75.75 0 0 1-.927-.928l.929-3.25c.081-.286.235-.547.445-.75l8.61-8.61Zm.176 4.823L9.75 4.81l-6.286 6.287a.253.253 0 0 0-.064.108l-.558 1.953 1.953-.558a.253.253 0 0 0 .108-.064Z"/></svg>
+        </div>
+        <div class="rbody">
+          <h1>wsl2-ubuntu-claude-code-setup</h1>
+          <p>一套在 <b>Windows 11</b> 上从零搭建 <b>WSL2 开发环境</b>、并把 <b>DeepSeek API</b> 接入 <b>Claude Code CLI</b> 的可复现方案。</p>
+          <p>四个阶段全部脚本化：<code>启用 WSL2</code> → <code>安装 Ubuntu</code> → <code>安装 Claude Code</code> → <code>接入 DeepSeek 并验证</code>，附完整排障手册。</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="side">
+      <h3>关于</h3>
+      <div class="desc">一套在 Windows 11 上从零搭建 WSL2 开发环境、并把 DeepSeek API 接入 Claude Code CLI 的可复现方案。</div>
+      <div class="topics">
+        <span class="topic">wsl2</span><span class="topic">ubuntu</span><span class="topic">claude-code</span><span class="topic">deepseek</span><span class="topic">windows11</span><span class="topic">devops</span>
+      </div>
+      <div class="divider"></div>
+      <div class="stat"><svg viewBox="0 0 16 16"><path d="M8 .25a.75.75 0 0 1 .673.418l1.882 3.815 4.21.612a.75.75 0 0 1 .416 1.279l-3.046 2.97.719 4.192a.751.751 0 0 1-1.088.791L8 12.347l-3.766 1.98a.75.75 0 0 1-1.088-.79l.72-4.194L.818 6.374a.75.75 0 0 1 .416-1.28l4.21-.611L7.327.668A.75.75 0 0 1 8 .25Z"/></svg><b>356</b> <span class="lbl">stars</span></div>
+      <div class="stat"><svg viewBox="0 0 16 16"><path d="M5 5.372v.878c0 .414.336.75.75.75h4.5a.75.75 0 0 0 .75-.75v-.878a2.25 2.25 0 1 1 1.5 0v.878a2.25 2.25 0 0 1-2.25 2.25h-1.5v2.128a2.251 2.251 0 1 1-1.5 0V8.5h-1.5A2.25 2.25 0 0 1 3.5 6.25v-.878a2.25 2.25 0 1 1 1.5 0Z"/></svg><b>59</b> <span class="lbl">forks</span></div>
+      <div class="stat"><svg viewBox="0 0 16 16"><path d="M1.5 1.75V13.5h13.75a.75.75 0 0 1 0 1.5H.75a.75.75 0 0 1-.75-.75V1.75a.75.75 0 0 1 1.5 0Zm14.28 2.53-5.25 5.25a.75.75 0 0 1-1.06 0L7 7.06 4.28 9.78a.751.751 0 0 1-1.06-1.06l3.25-3.25a.75.75 0 0 1 1.06 0L9 7.94l4.72-4.72a.751.751 0 0 1 1.06 1.06Z"/></svg><b>1.2k</b> <span class="lbl">views / 月</span></div>
+      <div class="divider"></div>
+      <div class="lang">
+        <h4>语言</h4>
+        <div class="langbar">
+          <div style="width:62%;background:#3178c6;"></div>
+          <div style="width:28%;background:#89e051;"></div>
+          <div style="width:10%;background:#f1e05a;"></div>
+        </div>
+        <div class="langrow">
+          <span><span class="dot" style="background:#3178c6;"></span>PowerShell 62%</span>
+          <span><span class="dot" style="background:#89e051;"></span>Shell 28%</span>
+          <span><span class="dot" style="background:#f1e05a;"></span>Markdown 10%</span>
+        </div>
+      </div>
+      <div class="divider"></div>
+      <h4>发行版</h4>
+      <div class="rel">未发布任何版本</div>
+    </div>
+  </div>
+</div>
+</body>
+</html>
