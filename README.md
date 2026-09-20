@@ -8,6 +8,7 @@
 
 ## 目录
 
+- [0. 项目介绍](#0-项目介绍)
 - [1. 项目解决什么问题](#1-项目解决什么问题)
 - [2. 目录结构](#2-目录结构)
 - [3. 目标环境实测数据](#3-目标环境实测数据)
@@ -22,6 +23,91 @@
 - [12. 安全须知](#12-安全须知)
 - [13. 使用手册（装好之后怎么用）](#13-使用手册装好之后怎么用)
 - [14. 推广素材](#14-推广素材)
+
+---
+
+## 0. 项目介绍
+
+### 0.1 它是什么
+
+一个**把「Windows 装 Linux 开发环境 + 接国产大模型跑 AI 编程工具」这件事完整脚本化**的工程。
+
+从一台裸的 Windows 11 开始，最终得到：一个 WSL2 的 Ubuntu 26.04 环境，里面装着 Claude Code CLI，
+背后跑的是 DeepSeek 的模型——全程不需要微软商店、不需要付费订阅、不需要科学上网。
+
+### 0.2 为什么会有这个项目
+
+网上关于 WSL2 的教程，开头基本都是同一句：*"打开 PowerShell，运行 `wsl --install`，完事。"*
+
+这句话在理想网络下是对的。但在一台真实的国内 Windows 机器上，我遇到的情况是：
+
+```
+wsl --update          →  403 已禁止（微软商店 CDN 不可达）
+wsl -d Ubuntu         →  "WSL 必须更新到最新版本"（其实只装了个 inbox stub）
+wsl -l -v             →  显示有 Ubuntu，但目录根本不存在（孤儿登记）
+01-install.ps1        →  ParserError（PowerShell 5.1 把 UTF-8 中文按 GBK 读）
+02-setup-claude.sh    →  bad interpreter（.sh 被转成 CRLF）
+```
+
+**五个坑，没有一个是"命令输错了"，全是环境和编码层面的问题。**
+这个项目就是那次排障的完整沉淀——每个坑都有根因分析、检测方法和修法，并且把修法固化进了脚本。
+
+所以它记录的不是"顺利情况下该怎么做"，而是**"不顺利时该怎么办"**。这是它和绝大多数教程最大的区别。
+
+### 0.3 适合谁
+
+| 适合 | 不太适合 |
+|---|---|
+| 主力机是 Windows 11，需要 Linux 命令行环境 | 已经在用 macOS / Linux 原生开发 |
+| 想用 Claude Code，但介意订阅费用或网络稳定性 | 需要官方 Claude 模型能力（本项目跑的是 DeepSeek） |
+| 装 WSL 失败过，被各种报错劝退 | 只需要图形界面工具、不碰命令行 |
+| 希望环境可复现、可一键重建 | 追求极简、愿意全程手敲命令 |
+
+### 0.4 装完之后能做什么
+
+- **日常脚本与小工具**：Python / Node / Shell 全都有原生 Linux 环境，`apt` 装包、`cron` 定时任务都能用
+- **AI 辅助编程**：在终端里用自然语言让它读代码、改 bug、写测试、生成文档
+- **学习 Linux**：一个搞不坏的环境，搞崩了删掉重装只要几分钟，Windows 本体不受影响
+- **Docker / 数据库 / 各类服务**：比虚拟机轻量得多，和 Windows 文件系统互通
+- **VS Code 远程开发**：装 WSL 插件后，Windows 上的 VS Code 直接编辑 WSL 里的文件
+
+### 0.5 和自己照着教程配，差在哪
+
+| 维度 | 自己配 | 本项目 |
+|---|---|---|
+| WSL 更新失败（403） | 卡住，需自己找离线包 | 本地 MSI → web-download → CDN **三级回退** |
+| 中文 Windows 上的编码问题 | 脚本莫名其妙 ParserError | 所有脚本强制 **ASCII-only** |
+| 网络依赖 | nvm / npm 默认走境外源 | Node 与 npm 全部走 **npmmirror 国内镜像** |
+| 环境残留 | 装了一半的孤儿登记清不掉 | **自动检测**并在目录确实缺失时清理 |
+| 配错了怎么发现 | 靠感觉 | `03-verify.sh` **逐项验证 + 端到端真实调用** |
+| 重装成本 | 重新走一遍所有坑 | 脚本**幂等**，重跑即可 |
+
+### 0.6 设计原则
+
+1. **幂等**：任何脚本重复运行都不会破坏已有安装，只做补齐和覆盖配置。
+2. **不依赖境外网络**：Node / npm / WSL 安装包均有国内可达的获取路径。
+3. **ASCII-only**：所有 PowerShell 脚本不含非 ASCII 字符，彻底规避编码问题。
+4. **零敏感信息**：仓库内不含任何真实 API Key，配置以占位符模板提供。
+5. **可验证**：每一步都有对应的验证方法，不靠"应该好了吧"来判断。
+
+### 0.7 成本说明
+
+Claude Code 本身是开源免费的 CLI 工具；费用来自它调用的模型。
+本项目接入 **DeepSeek API**，按 token 计费、随充随用，没有月费门槛——
+想试试 AI 编程但不想先掏一份订阅费的场景，成本会低很多。
+
+### 0.8 English
+
+A reproducible setup that turns a bare **Windows 11** machine into a working
+**WSL2 + Ubuntu** environment running **Claude Code CLI** on top of the
+**DeepSeek API** — without Microsoft Store, without a paid subscription, and
+without access to overseas networks.
+
+It is not a "happy path" tutorial. It documents a real troubleshooting session
+on a machine where the Store CDN was blocked (403), WSL was only an inbox stub,
+a stale registry entry pretended Ubuntu was installed, and PowerShell 5.1 broke
+UTF-8 scripts. Every failure has a root cause, a detection method, and a fix
+that is baked into the scripts.
 
 ---
 
@@ -113,7 +199,7 @@ wsl-ubuntu-setup/
 │     创建 UNIX 用户名 / 密码
 │
 ├─ 阶段三 ─ WSL 内执行 02-setup-claude.sh
-│     nvm + Node LTS → npm 镜像 → npm i -g @anthropic-ai/claude-code
+│     Node v22（npmmirror 镜像）→ npm 国内镜像 → npm i -g @anthropic-ai/claude-code
 │
 ├─ 阶段四 ─ 同上脚本自动完成
 │     写入 ~/.claude/settings.json + 预置 onboarding
