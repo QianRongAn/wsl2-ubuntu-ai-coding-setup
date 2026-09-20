@@ -1,0 +1,20 @@
+# 大文件：WSL 安装包 247MB，超过 GitHub 单文件 100MB 限制，不入库
+*.msi
+*.msixbundle
+*.part
+*.vhdx
+
+# 含密钥的配置，绝不入库
+*settings.json
+!config/deepseek-settings.example.json
+*.key
+*key*.txt
+.env
+
+# 临时探测文件
+_probe*.txt
+_*check.txt
+
+# 系统
+.DS_Store
+Thumbs.db
