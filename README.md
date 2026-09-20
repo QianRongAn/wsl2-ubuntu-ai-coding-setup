@@ -80,7 +80,8 @@ wsl-ubuntu-setup/
     └── USAGE.md                     ← 装好之后怎么用 Claude Code（日常手册）
 ```
 
-> **WSL 安装包不在仓库内**：`wsl.2.7.14.0.x64.msi` 有 247MB，超过 GitHub 单文件 100MB 上限，需自行下载（见 [5.2](#52-准备-wsl-安装包))。
+> **WSL 安装包不进 git 仓库**：`wsl.2.7.14.0.x64.msi` 有 247MB，超过 GitHub 单文件 100MB 上限，
+> 已作为 **Release 附件**提供，直接从 [Releases](https://github.com/QianRongAn/wsl2-ubuntu-claude-code-setup/releases/tag/wsl-2.7.14) 下载（见 [5.2](#52-准备-wsl-安装包)）。
 
 ---
 
@@ -153,15 +154,28 @@ wsl-ubuntu-setup/
 
 ### 5.2 准备 WSL 安装包
 
-脚本优先使用同目录下的本地 MSI。下载最新版：
+脚本优先使用同目录下的本地 MSI（文件名 `wsl.2.7.14.0.x64.msi`，与本工程验证版本一致）。
+
+**方式一（推荐）：直接下载本仓库 Releases 里已上传的安装包**
+
+```
+https://github.com/QianRongAn/wsl2-ubuntu-claude-code-setup/releases/download/wsl-2.7.14/wsl.2.7.14.0.x64.msi
+```
+
+或命令行：
+
+```bash
+curl -L -o wsl.2.7.14.0.x64.msi \
+  https://github.com/QianRongAn/wsl2-ubuntu-claude-code-setup/releases/download/wsl-2.7.14/wsl.2.7.14.0.x64.msi
+```
+
+**方式二：从微软官方 GitHub Release 下载最新版**
 
 ```
 https://github.com/microsoft/WSL/releases
 ```
 
-取 `wsl.<版本>.0.x64.msi`（本工程验证版本：**2.7.14**，247MB）。
-
-**网络技巧**：若直连 GitHub 缓慢，检查本机代理地址后显式指定，例如 Clash 默认端口：
+取 `wsl.<版本>.0.x64.msi`（本工程验证版本：**2.7.14**，247MB）。国内直连缓慢时显式走代理：
 
 ```bash
 curl -L -x http://127.0.0.1:7890 -o wsl.2.7.14.0.x64.msi \
@@ -460,7 +474,7 @@ D 组做真实端到端调用，超时 180 秒。
 - **不要把真实 API Key 提交进仓库**。仓库只提供 `config/deepseek-settings.example.json` 占位模板；`.gitignore` 已排除 `*settings.json`、`*.key`。
 - 配置文件建议 `chmod 600 ~/.claude/settings.json`。
 - 若 Key 曾误提交，请立即到 DeepSeek 平台作废并重新生成。
-- WSL 安装包（247MB）不入库，请自行下载。
+- WSL 安装包（247MB）不进 git 仓库，以 Release 附件形式提供，见 [Releases](https://github.com/QianRongAn/wsl2-ubuntu-claude-code-setup/releases/tag/wsl-2.7.14)。
 
 ---
 
