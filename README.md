@@ -416,6 +416,7 @@ D 组做真实端到端调用，超时 180 秒。
 | 模型报 404 / unknown model | 模型名不对 | 查 `/models` 真实 ID 后改配置 |
 | 仍弹 Claude Code 登录页 | settings.json 缺失或非法 | `jq -e . ~/.claude/settings.json` 校验 |
 | **WSL 内下载卡死 / 连不上 GitHub** | WSL 默认 NAT 模式，用不了 Windows 的 localhost 代理 | 脚本 v3 已移除全部 GitHub 依赖（Node 走 npmmirror、npm 走国内镜像），无需代理 |
+| **装完提示 `claude: command not found`** | PATH 写在 `~/.bashrc`，当前终端未刷新 | `source ~/.bashrc`，或重开终端 |
 
 ### 常用运维命令
 
@@ -489,3 +490,7 @@ chrome --headless=new --disable-gpu --hide-scrollbars \
 | Node.js | v22 LTS（从 npmmirror 镜像下载，装到 `~/.local/node`，需 ≥ 18） |
 | Claude Code | `@anthropic-ai/claude-code` 最新版 |
 | DeepSeek 模型 | `deepseek-v4-pro[1m]` / `deepseek-v4-flash[1m]` |
+
+> **实机验证**：上述组合于 2026-09-20 在一台真实 Windows 11 机器上从零跑通全流程
+> （WSL2 → Ubuntu → Claude Code CLI → DeepSeek 端到端对话），
+> 安装脚本在无代理环境下完成，DeepSeek `/models` 与 `/anthropic/v1/messages` 均返回 200。

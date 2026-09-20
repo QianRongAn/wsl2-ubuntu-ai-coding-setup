@@ -20,7 +20,13 @@ Claude Code 是**以当前目录为工作范围**的。在 `~` 里启动，它�
 
 ## 2. 首次运行
 
+> **刚装完提示 `claude: command not found`？** 不是没装上。安装脚本把 Node 的 PATH 写进了
+> `~/.bashrc`，但只对新终端生效。在当前窗口执行 `source ~/.bashrc`，或重开一个 Ubuntu 即可。
+
 配置正确时**不会弹出登录界面**，直接进入对话。因为它通过 `ANTHROPIC_BASE_URL` + `ANTHROPIC_AUTH_TOKEN` 认证，不走官方 OAuth。
+
+**第一次进入某个目录时会弹信任确认**（"Yes, I trust this folder"），用方向键 ↓ 选 Yes 回车。
+这个目录决定了它的读写范围，所以每次换项目都会问一次——**不要对系统目录或家目录随便选 Yes**。
 
 如果弹了登录页 → 配置没生效，敲 `/doctor` 看诊断，或检查：
 
