@@ -68,6 +68,8 @@ Step '3/7 Install the modern WSL (this is what the 403 / must-update error was a
 Use-Native
 $modernPath = 'C:\Program Files\WSL\wsl.exe'
 $msi = Join-Path $ScriptDir 'wsl.2.7.14.0.x64.msi'
+# Self-hosted copy of the upstream installer (see the project Release page).
+$MsiUrl = 'https://github.com/QianRongAn/wsl2-ubuntu-claude-code-setup/releases/download/wsl-2.7.14/wsl.2.7.14.0.x64.msi'
 
 if (Test-Path $modernPath) {
     Ok "Modern WSL already present at $modernPath"
@@ -95,9 +97,27 @@ if (-not (Test-Path $modernPath)) {
         & wsl.exe --update 2>&1 | ForEach-Object { Info "$_" }
     }
     if (-not (Test-Path $modernPath)) {
-        Warn 'Could not install the modern WSL automatically.'
-        Warn 'Please download it manually (browser / proxy) and re-run this script:'
-        Warn '  https://github.com/microsoft/WSL/releases/download/2.7.14/wsl.2.7.14.0.x64.msi'
+        Info 'Attempt: download the MSI from this project Release (GitHub)'
+        try {
+            $ProgressPreference = 'SilentlyContinue'
+            [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+            Invoke-WebRequest -Uri $MsiUrl -OutFile $msi -UseBasicParsing -ErrorAction Stop
+        } catch {
+            Warn "Download failed: $($_.Exception.Message)"
+        }
+        if (Test-Path $msi) {
+            Info 'Installing the downloaded MSI silently (takes ~1 minute)...'
+            $d = Start-Process msiexec.exe -ArgumentList "/i `"$msi`" /qn /norestart" -Wait -PassThru
+            if ($d.ExitCode -eq 0 -or $d.ExitCode -eq 3010) {
+                Ok "WSL installed from downloaded MSI (msiexec exit $($d.ExitCode))."
+                if ($d.ExitCode -eq 3010) { Warn 'Exit 3010 = a reboot is recommended before first use.' }
+            }
+        }
+    }
+    if (-not (Test-Path $modernPath)) {
+        Warn 'Could not install the modern WSL automatically (network blocked).'
+        Warn 'Download this file manually (browser / proxy) and re-run this script:'
+        Warn "  $MsiUrl"
         Warn "Save it as: $msi"
         exit 1
     }

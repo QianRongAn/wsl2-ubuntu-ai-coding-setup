@@ -182,7 +182,9 @@ curl -L -x http://127.0.0.1:7890 -o wsl.2.7.14.0.x64.msi \
   https://github.com/microsoft/WSL/releases/download/2.7.14/wsl.2.7.14.0.x64.msi
 ```
 
-> 没有本地 MSI 时脚本会自动尝试在线安装，不阻断流程。
+> **通常不需要手动下载**：脚本在拿不到本地 MSI 时，会依次尝试
+> `wsl --update --web-download` → `wsl --update` → **自动从本仓库 Release 下载上面的 MSI**，
+> 三级都失败才会提示你手动下载。手动下载只在完全无外网的情况下才需要做。
 
 ### 5.3 执行
 
