@@ -22,7 +22,6 @@
 - [11. 排障手册](#11-排障手册)
 - [12. 安全须知](#12-安全须知)
 - [13. 使用手册（装好之后怎么用）](#13-使用手册装好之后怎么用)
-- [14. 推广素材](#14-推广素材)
 
 ---
 
@@ -77,13 +76,8 @@ wsl-ubuntu-setup/
 │   └── 04-verify.ps1                ← Windows 执行：概览验证
 ├── config/
 │   └── deepseek-settings.example.json   ← DeepSeek 配置模板（Key 为占位符）
-├── docs/
-│   └── USAGE.md                     ← 装好之后怎么用 Claude Code（日常手册）
-└── promo/
-    ├── repo-promo.html              ← 推广图 HTML 源（改文案后可重新渲染）
-    ├── repo-promo.png               ← 推广图成品（2880×1520）
-    ├── xiaohongshu.md               ← 小红书文案（含标题备选 + 配图建议）
-    └── xiaohongshu.txt              ← 小红书文案纯文本版（可直接复制）
+└── docs/
+    └── USAGE.md                     ← 装好之后怎么用 Claude Code（日常手册）
 ```
 
 > **WSL 安装包不在仓库内**：`wsl.2.7.14.0.x64.msi` 有 247MB，超过 GitHub 单文件 100MB 上限，需自行下载（见 [5.2](#52-准备-wsl-安装包))。
@@ -481,27 +475,6 @@ D 组做真实端到端调用，超时 180 秒。
 1. 进项目目录再启动（`cd ~/项目 && claude`），别在 `~` 里启动
 2. 新项目先跑 `/init` 生成 `CLAUDE.md`
 3. 出问题先敲 `/doctor`
-
----
-
-## 14. 推广素材
-
-`promo/` 下是社媒推广用的现成物料：
-
-| 文件 | 用途 |
-|---|---|
-| `repo-promo.png` | 仓库页风格推广图（2880×1520 高清 PNG），适合做首图 |
-| `repo-promo.html` | 推广图 HTML 源。改文案/配色后，用 Chrome 无头模式重新渲染即可 |
-
-重新出图：
-
-```bash
-chrome --headless=new --disable-gpu --hide-scrollbars \
-  --force-device-scale-factor=2 --window-size=1440,760 \
-  --screenshot=repo-promo.png repo-promo.html
-```
-
-> 注：`repo-promo.png` 中侧栏的 star / fork / view 数字为**装饰性占位值**，并非真实数据，对外发布前请替换为真实数字或移除。
 
 ---
 
