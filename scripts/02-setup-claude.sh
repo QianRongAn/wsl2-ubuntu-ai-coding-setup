@@ -1,15 +1,13 @@
 #!/usr/bin/env bash
 # ============================================================================
-#  02-setup-claude.sh
+#  02-setup-claude.sh  (v3 - 无 GitHub 依赖版)
 #  在 WSL2 Ubuntu 内：安装 Node.js → 安装 Claude Code CLI → 接入 DeepSeek API
-# ----------------------------------------------------------------------------
-#  用法（在 Ubuntu 终端里执行，任选其一）：
+#
+#  用法（在 Ubuntu 终端里执行）：
 #     DEEPSEEK_API_KEY='sk-xxxxxxxx' bash 02-setup-claude.sh
-#     bash 02-setup-claude.sh 'sk-xxxxxxxx'
 #
-#  从 Windows 盘符直接进入执行：
-#     DEEPSEEK_API_KEY='sk-xxx' bash /mnt/c/Users/Administrator/WorkBuddy/2026-09-20-10-03-15/wsl-claude-setup/02-setup-claude.sh
-#
+#  本版特点：Node 从 npmmirror 国内镜像下载，npm 走 npmmirror registry，
+#  全程不访问 github.com / raw.githubusercontent.com，无代理也能跑通。
 #  脚本幂等：重复运行会覆盖配置，但不会破坏已有安装。
 # ============================================================================
 
@@ -31,28 +29,36 @@ ok()   { printf '  \033[32m[OK]\033[0m %s\n' "$1"; }
 warn() { printf '  \033[33m[!!]\033[0m %s\n' "$1"; }
 
 # ------------------------------------------------------------------ 0. 依赖
-step "0/6 更新系统并安装基础依赖（需要 sudo 密码）"
+step "0/6 安装基础依赖（需要 sudo 密码）"
 $SUDO apt-get update -y
-$SUDO DEBIAN_FRONTEND=noninteractive apt-get upgrade -y
 $SUDO DEBIAN_FRONTEND=noninteractive apt-get install -y \
-      curl git ca-certificates jq xz-utils build-essential
+      curl git ca-certificates jq xz-utils
 ok "基础依赖就绪"
 
 # --------------------------------------------------------------- 1. Node.js
-step "1/6 安装 Node.js（nvm + LTS，二进制走 npmmirror 镜像）"
-export NVM_DIR="$HOME/.nvm"
-if [[ ! -s "$NVM_DIR/nvm.sh" ]]; then
-  echo "  安装 nvm ..."
-  curl -fsSL https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.3/install.sh | bash
+step "1/6 安装 Node.js（npmmirror 国内镜像，直连可用）"
+NODE_HOME="$HOME/.local/node"
+if [[ -x "$NODE_HOME/bin/node" ]]; then
+  ok "Node 已存在（$($NODE_HOME/bin/node -v)），跳过下载"
 else
-  echo "  nvm 已存在，跳过安装"
+  echo "  获取最新 Node v22 版本号 ..."
+  VER=$(curl -fsSL https://cdn.npmmirror.com/binaries/node/index.json \
+        | jq -r '[.[] | select(.version | startswith("v22."))][0].version')
+  [[ -n "$VER" && "$VER" != "null" ]] || VER="v22.14.0"
+  URL="https://cdn.npmmirror.com/binaries/node/${VER}/node-${VER}-linux-x64.tar.xz"
+  echo "  下载 $URL ..."
+  curl -fL --retry 3 -o /tmp/node.tar.xz "$URL"
+  mkdir -p "$NODE_HOME"
+  tar -xJf /tmp/node.tar.xz -C "$NODE_HOME" --strip-components=1
+  rm -f /tmp/node.tar.xz
+  ok "解压到 $NODE_HOME"
 fi
-# shellcheck disable=SC1091
-\. "$NVM_DIR/nvm.sh"
-export NVM_NODEJS_ORG_MIRROR="https://cdn.npmmirror.com/binaries/node"
-nvm install --lts
-nvm alias default 'lts/*'
-nvm use default >/dev/null
+export PATH="$NODE_HOME/bin:$PATH"
+# 写入 .bashrc（幂等）
+if ! grep -q '\.local/node/bin' "$HOME/.bashrc" 2>/dev/null; then
+  printf '\nexport PATH="$HOME/.local/node/bin:$PATH"\n' >> "$HOME/.bashrc"
+  ok "已写入 ~/.bashrc（PATH）"
+fi
 ok "Node $(node -v) / npm $(npm -v)"
 
 # ------------------------------------------------------------- 2. npm 镜像
@@ -104,19 +110,15 @@ if [[ -z "$MODELS" ]]; then
   warn "未取到模型列表，请检查网络或 API Key 是否有效"
 else
   echo "$MODELS" | jq -r '.data[].id' 2>/dev/null | sed 's/^/    - /' || echo "$MODELS"
-  echo ""
-  echo "  ↑ 请核对上面列表中是否存在配置里用到的模型名："
-  echo "      deepseek-v4-pro[1m]  /  deepseek-v4-flash[1m]"
-  echo "    若名称不同，请手动编辑 ~/.claude/settings.json 改成实际存在的 ID。"
 fi
 
 echo ""
 echo "============================================================================"
 echo " 安装完成。验证命令："
-echo "   node -v                    # 应输出 v22.x 或更高（>= 18 即可）"
+echo "   node -v                    # 应输出 v22.x（>= 18 即可）"
 echo "   claude --version           # 应输出 Claude Code 版本号"
 echo "   cat ~/.claude/settings.json"
 echo ""
-echo " 端到端连通性测试（进入任意项目目录后）："
+echo " 端到端连通性测试："
 echo "   claude -p '只回复两个字：可用' --output-format text"
 echo "============================================================================"
