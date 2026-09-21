@@ -72,36 +72,26 @@ and route B (OpenCode CLI + OpenCode Go, the author's current daily driver).
 [第 6 节](#6-阶段二创建-unix-账号)）。二者仅在"Ubuntu 就绪后部署哪一套 AI 编程工具"上产生分岔。
 
 ```mermaid
-%%{init: {"themeVariables": {"fontSize": "16px"}, "flowchart": {"nodeSpacing": 50, "rankSpacing": 70, "curve": "basis"}}}%%
+%%{init: {"themeVariables": {"fontSize": "18px"}, "flowchart": {"nodeSpacing": 30, "rankSpacing": 40, "curve": "basis", "padding": 6}}}%%
 flowchart LR
-    START(["Win11"]) --> WSL(["WSL2"])
-    WSL --> UB(["Ubuntu"])
-    UB --> SEL(["技术选型"])
-
-    SEL -->|"方案 A"| A1(["Claude Code"])
-    SEL -->|"方案 B · 推荐"| B1(["OpenCode"])
-
-    A1 --> A2(["DeepSeek API"])
-    B1 --> B2(["OpenCode Go"])
-
-    A2 --> A3(["第 7~9 节"])
-    B2 --> B3(["第 10 节"])
+    A(["Win11"]) --> B(["WSL2"]) --> C(["Ubuntu"]) --> D(["技术选型"])
+    D -->|"方案 A · 第 7~9 节"| E(["Claude Code + DeepSeek"])
+    D -->|"方案 B · 推荐 · 第 10 节"| F(["OpenCode + OpenCode Go"])
 
     classDef base fill:#f6f8fa,stroke:#57606a,color:#24292f
     classDef pick fill:#fff8e5,stroke:#bf8700,color:#24292f
     classDef a fill:#eaf3ff,stroke:#0969da,color:#24292f
     classDef b fill:#eafaf1,stroke:#1a7f37,color:#24292f
 
-    class START,WSL,UB base
-    class SEL pick
-    class A1,A2,A3 a
-    class B1,B2,B3 b
+    class A,B,C base
+    class D pick
+    class E a
+    class F b
 ```
 
-> 若当前环境无法渲染 Mermaid，此处等价的文字结构为：
-> `Win11 → WSL2 → Ubuntu` 为两方案共用的底座；
-> 其后的分岔为 **方案 A（Claude Code + DeepSeek API，第 7~9 节）**
-> 与 **方案 B（OpenCode + OpenCode Go，第 10 节）**。
+> 文字版等价结构：`Win11 → WSL2 → Ubuntu → 技术选型`，
+> 分岔为 **方案 A（Claude Code + DeepSeek，第 7~9 节）**
+> 与 **方案 B（OpenCode + OpenCode Go，第 10 节，推荐）**。
 
 ### 方案对比
 
