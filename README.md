@@ -1,8 +1,20 @@
 # WSL2 + Ubuntu + AI 编程工具 一键配置工程
 
-一套在 Windows 11 上从零搭建 WSL2 开发环境、并接入 AI 编程工具的可复现方案。工具提供两条方案：**Claude Code CLI**（接 DeepSeek API）与 **OpenCode CLI**（接 OpenCode Go）。
+在 Windows 11 上**一键搭建 WSL2 + Ubuntu 开发环境**，并接入 AI 编程工具跑大模型。两条方案任选：
 
-本仓库记录的**不是理论步骤**，而是一次真实排障过程的完整沉淀：目标机器存在微软商店 CDN 被屏蔽、WSL 仅为 inbox stub、注册表残留孤儿登记等多重障碍，所有脚本都是在解决这些真实问题后成型的。
+- **方案 A**：Claude Code CLI + DeepSeek API（按 token 计费）
+- **方案 B**：OpenCode CLI + OpenCode Go（订阅配额，9 个模型可切换）——**推荐**
+
+**为什么用它：**
+
+| 特点 | 说明 |
+|---|---|
+| 一键到底 | 脚本全自动，不用手动 `wsl --install` 反复踩坑 |
+| 免商店、免代理 | 微软商店 CDN 被墙、GitHub 连不上也能装 |
+| 装完即用 | 自带验证脚本，几分钟跑通「环境 + 模型对话」 |
+| 两条方案按需选 | 要省钱按量、要多模型订阅，都有现成方案 |
+
+**快速开始：** 方案 A 看 [第 5~9 节](#5-阶段一安装-wsl2--ubuntu)，方案 B 看 [第 10 节](#10-opencode--opencode-go方案-b)。
 
 ---
 
