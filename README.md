@@ -1,6 +1,6 @@
-# WSL2 + Ubuntu + Claude Code(DeepSeek) 一键配置工程
+# WSL2 + Ubuntu + AI 编程工具 一键配置工程
 
-一套在 Windows 11 上从零搭建 WSL2 开发环境、并把 DeepSeek API 接入 Claude Code CLI 的可复现方案。
+一套在 Windows 11 上从零搭建 WSL2 开发环境、并接入 AI 编程工具的可复现方案。工具提供两条方案：**Claude Code CLI**（接 DeepSeek API）与 **OpenCode CLI**（接 OpenCode Go）。
 
 本仓库记录的**不是理论步骤**，而是一次真实排障过程的完整沉淀：目标机器存在微软商店 CDN 被屏蔽、WSL 仅为 inbox stub、注册表残留孤儿登记等多重障碍，所有脚本都是在解决这些真实问题后成型的。
 
@@ -44,9 +44,9 @@
 ### 0.2 English
 
 A reproducible setup that turns a bare **Windows 11** machine into a working
-**WSL2 + Ubuntu** environment running **Claude Code CLI** on top of the
-**DeepSeek API** — without Microsoft Store, without a paid subscription, and
-without access to overseas networks.
+**WSL2 + Ubuntu** environment running an AI coding tool — **Claude Code CLI**
+(on the **DeepSeek API**) or **OpenCode CLI** (on **OpenCode Go**) — without
+Microsoft Store and without access to overseas networks.
 
 It is not a "happy path" tutorial. It documents a real troubleshooting session
 on a machine where the Store CDN was blocked (403), WSL was only an inbox stub,
@@ -54,7 +54,7 @@ a stale registry entry pretended Ubuntu was installed, and PowerShell 5.1 broke
 UTF-8 scripts. Every failure has a root cause, a detection method, and a fix
 that is baked into the scripts.
 
-Two AI-client routes are documented: route A (Claude Code CLI + DeepSeek API)
+Two AI coding tool routes are documented: route A (Claude Code CLI + DeepSeek API)
 and route B (OpenCode CLI + OpenCode Go, the author's current daily driver).
 
 ---
@@ -154,7 +154,7 @@ OpenCode Go 采用订阅配额制，并设有 **5 小时 / 每周 / 每月**三�
 
 结论是：**方案 A 的优势在工具层、劣势在模型层；方案 B 相反。**
 而在实际科研任务中，模型能力往往是准确性的主要瓶颈——同一个任务换一个更强的模型，
-结果差异通常大于换一个客户端。这也是推荐方案 B 的核心原因之一。
+结果差异通常大于换一个工具。这也是推荐方案 B 的核心原因之一。
 
 > 实测参照：方案 A 在复杂任务中出现过模型反复循环调用、偏离目标的情况
 > （见 [1. 计费模型决定成本可控性](#1-计费模型决定成本可控性) 中的余额记录），
@@ -260,7 +260,7 @@ wsl-ubuntu-setup/
 ```
 
 > **WSL 安装包不进 git 仓库**：`wsl.2.7.14.0.x64.msi` 有 247MB，超过 GitHub 单文件 100MB 上限，
-> 已作为 **Release 附件**提供，直接从 [Releases](https://github.com/QianRongAn/wsl2-ubuntu-claude-code-setup/releases/tag/wsl-2.7.14) 下载（见 [5.2](#52-准备-wsl-安装包)）。
+> 已作为 **Release 附件**提供，直接从 [Releases](https://github.com/QianRongAn/wsl2-ubuntu-ai-coding-setup/releases/tag/wsl-2.7.14) 下载（见 [5.2](#52-准备-wsl-安装包)）。
 
 ---
 
@@ -338,14 +338,14 @@ wsl-ubuntu-setup/
 **方式一（推荐）：直接下载本仓库 Releases 里已上传的安装包**
 
 ```
-https://github.com/QianRongAn/wsl2-ubuntu-claude-code-setup/releases/download/wsl-2.7.14/wsl.2.7.14.0.x64.msi
+https://github.com/QianRongAn/wsl2-ubuntu-ai-coding-setup/releases/download/wsl-2.7.14/wsl.2.7.14.0.x64.msi
 ```
 
 或命令行：
 
 ```bash
 curl -L -o wsl.2.7.14.0.x64.msi \
-  https://github.com/QianRongAn/wsl2-ubuntu-claude-code-setup/releases/download/wsl-2.7.14/wsl.2.7.14.0.x64.msi
+  https://github.com/QianRongAn/wsl2-ubuntu-ai-coding-setup/releases/download/wsl-2.7.14/wsl.2.7.14.0.x64.msi
 ```
 
 **方式二：从微软官方 GitHub Release 下载最新版**
@@ -657,7 +657,7 @@ D 组做真实端到端调用，超时 180 秒。
 - **不要把真实 API Key 提交进仓库**。仓库只提供 `config/deepseek-settings.example.json` 占位模板；`.gitignore` 已排除 `*settings.json`、`*.key`。
 - 配置文件建议 `chmod 600 ~/.claude/settings.json`。
 - 若 Key 曾误提交，请立即到 DeepSeek 平台作废并重新生成。
-- WSL 安装包（247MB）不进 git 仓库，以 Release 附件形式提供，见 [Releases](https://github.com/QianRongAn/wsl2-ubuntu-claude-code-setup/releases/tag/wsl-2.7.14)。
+- WSL 安装包（247MB）不进 git 仓库，以 Release 附件形式提供，见 [Releases](https://github.com/QianRongAn/wsl2-ubuntu-ai-coding-setup/releases/tag/wsl-2.7.14)。
 
 ---
 
