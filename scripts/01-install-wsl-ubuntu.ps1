@@ -69,7 +69,7 @@ Use-Native
 $modernPath = 'C:\Program Files\WSL\wsl.exe'
 $msi = Join-Path $ScriptDir 'wsl.2.7.14.0.x64.msi'
 # Self-hosted copy of the upstream installer (see the project Release page).
-$MsiUrl = 'https://github.com/QianRongAn/wsl2-ubuntu-claude-code-setup/releases/download/wsl-2.7.14/wsl.2.7.14.0.x64.msi'
+$MsiUrl = 'https://github.com/QianRongAn/wsl2-ubuntu-ai-coding-setup/releases/download/wsl-2.7.14/wsl.2.7.14.0.x64.msi'
 
 if (Test-Path $modernPath) {
     Ok "Modern WSL already present at $modernPath"
