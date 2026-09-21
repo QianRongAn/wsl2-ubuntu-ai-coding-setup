@@ -9,21 +9,21 @@
 ## 目录
 
 - [0. 项目介绍](#0-项目介绍)
-- [0.3 先选路线：两条路走哪条](#03-先选路线两条路走哪条)
+- [0.3 技术选型：方案 A 与方案 B](#03-技术选型方案-a-与方案-b)
 - [1. 项目解决什么问题](#1-项目解决什么问题)
 - [2. 目录结构](#2-目录结构)
 - [3. 目标环境实测数据](#3-目标环境实测数据)
 - [4. 完整流程总览](#4-完整流程总览)
 - [5. 阶段一：安装 WSL2 + Ubuntu](#5-阶段一安装-wsl2--ubuntu)
 - [6. 阶段二：创建 UNIX 账号](#6-阶段二创建-unix-账号)
-- [7. 阶段三：安装 Claude Code CLI（路线 A）](#7-阶段三安装-claude-code-cli路线-a)
-- [8. 阶段四：接入 DeepSeek API（路线 A）](#8-阶段四接入-deepseek-api路线-a)
-- [9. 阶段五：验证（路线 A）](#9-阶段五验证路线-a)
+- [7. 阶段三：安装 Claude Code CLI（方案 A）](#7-阶段三安装-claude-code-cli方案-a)
+- [8. 阶段四：接入 DeepSeek API（方案 A）](#8-阶段四接入-deepseek-api方案-a)
+- [9. 阶段五：验证（方案 A）](#9-阶段五验证方案-a)
 - [10. 脚本功能详解](#10-脚本功能详解)
 - [11. 排障手册](#11-排障手册)
 - [12. 安全须知](#12-安全须知)
 - [13. 使用手册](#13-使用手册)
-- [14. 路线 B：OpenCode + OpenCode Go](#14-路线-bopencode--opencode-go)
+- [14. 方案 B：OpenCode + OpenCode Go](#14-方案-bopencode--opencode-go)
 
 ---
 
@@ -36,10 +36,10 @@
 从一台裸的 Windows 11 开始，最终得到：一个 WSL2 的 Ubuntu 环境，里面跑着 AI 编程客户端，
 背后接的是国产/第三方大模型——全程不需要微软商店、不需要科学上网。
 
-**AI 客户端有两条路线可选**（详见 [0.3](#03-先选路线两条路走哪条)）：
+**AI 客户端提供两套方案**（详见 [0.3 技术选型](#03-技术选型方案-a-与方案-b)）：
 
-- **路线 A**：Claude Code CLI + DeepSeek API（按量付费）
-- **路线 B**：OpenCode CLI + OpenCode Go（订阅制，多模型）——**本项目作者现在的主力方案，推荐**
+- **方案 A**：Claude Code CLI + DeepSeek API（按 token 计费）
+- **方案 B**：OpenCode CLI + OpenCode Go（订阅配额，多模型）——**本项目作者当前的主力选择，推荐**
 
 ### 0.2 English
 
@@ -59,108 +59,110 @@ and route B (OpenCode CLI + OpenCode Go, the author's current daily driver).
 
 ---
 
-## 0.3 先选路线：两条路走哪条
+## 0.3 技术选型：方案 A 与方案 B
 
-**不管选哪条，前两步都一样**：先把 WSL2 + Ubuntu 装好（[第 5 节](#5-阶段一安装-wsl2--ubuntu)、
-[第 6 节](#6-阶段二创建-unix-账号)）。分岔点只在"Ubuntu 装好之后装哪个 AI 客户端"。
+两套方案的**前置步骤完全一致**：先完成 WSL2 + Ubuntu 的部署（[第 5 节](#5-阶段一安装-wsl2--ubuntu)、
+[第 6 节](#6-阶段二创建-unix-账号)）。二者仅在"Ubuntu 就绪后接入哪一个 AI 客户端"上产生分岔。
 
 ```
-                    装好 WSL2 + Ubuntu 26.04
+                    部署完成：WSL2 + Ubuntu 26.04
                               │
               ┌───────────────┴───────────────┐
               │                               │
-        路线 A：Claude Code              路线 B：OpenCode
+        方案 A：Claude Code              方案 B：OpenCode
         + DeepSeek API                   + OpenCode Go
-       （按量付费，用多少扣多少）        （订阅制额度，多模型切换）
+     （按量计费，余额驱动）          （订阅配额，多模型可切换）
               │                               │
         第 7~9 节                         第 14 节
 ```
 
-### 一眼对比
+### 方案对比
 
-| 维度 | 路线 A：Claude Code + DeepSeek | 路线 B：OpenCode + OpenCode Go |
+| 维度 | 方案 A：Claude Code + DeepSeek API | 方案 B：OpenCode + OpenCode Go |
 |---|---|---|
-| 付费方式 | 按 token 充值，余额烧完即停 | 订阅制额度（首月 $5 得 $60，之后 $10/月） |
-| 成本可控性 | **差**：开 auto 模式 + 并行子代理，一晚上能把余额烧到欠费 | **好**：内置 5 小时 / 每周 / 每月多级上限，跑不穿 |
-| 可用模型 | 只有 DeepSeek 一家 | 一个客户端多家：GLM-5.2、Kimi K3、Qwen3.8 Max、DeepSeek V4 Flash、GPT-5.6 Luna |
-| 协议契合度 | Claude Code 只认 Anthropic 协议，接 DeepSeek 走的是**兼容层** | OpenCode 原生 OpenAI 兼容，OpenCode Go 是一等公民 provider |
-| 安装依赖 | 官方脚本依赖 GitHub，国内要绕 | `npm -g opencode-ai`，走 npmmirror，全程不碰 GitHub |
-| 换模型成本 | 改 `settings.json` 里的模型名 | `/models` 回车选一下，随时切 |
-| 上手复杂度 | 中（要配 base URL、模型名、跳过登录向导） | 低（写一个 `auth.json` 就完事） |
-| 生态成熟度 | **更成熟**（VSCode 扩展、社区资料多） | 较新，插件和教程少一些 |
-| 网络延迟 | DeepSeek 国内直连，快 | 模型托管在境外，国内有几十到几百 ms 延迟 |
-| 适合谁 | 只用 DeepSeek、能自己控量、需要 VSCode 扩展 | 想省钱省心、需要多种模型、不想管余额 |
+| 计费模式 | 按 token 预充值计费，余额耗尽即中断 | 订阅配额制（首期 $5 得 $60，续期 $10/月） |
+| 成本可控性 | **低**：auto 模式叠加并行子代理时消耗呈指数增长，存在透支风险 | **高**：内置 5 小时 / 每周 / 每月三级配额上限，不会透支 |
+| 模型供给 | 单一供应商（DeepSeek） | 多供应商：GLM-5.2、Kimi K3、Qwen3.8 Max、DeepSeek V4 Flash、GPT-5.6 Luna |
+| 协议契合度 | 客户端仅支持 Anthropic 协议，接入 DeepSeek 依赖其**兼容适配层** | 客户端原生多 provider 架构，OpenCode Go 为一等公民 provider |
+| 安装依赖 | 官方安装脚本依赖 GitHub，受限网络下需额外处理 | `npm -g opencode-ai`，经 npmmirror 镜像分发，无需访问 GitHub |
+| 切换模型成本 | 需修改 `settings.json` 中的模型字段 | TUI 内 `/models` 交互式切换，即时生效 |
+| 配置复杂度 | 中：需配置 base URL、三档模型名，并预置文件以跳过登录向导 | 低：仅需写入单个 `auth.json` |
+| 生态成熟度 | **较高**：具备 VSCode 扩展，社区资料充分 | 相对较新，插件与第三方教程较少 |
+| 网络时延 | DeepSeek 境内直连，时延低 | 模型托管于境外节点，境内存在数十至数百毫秒附加时延 |
+| 适用场景 | 仅使用 DeepSeek、可自主控制用量、依赖 VSCode 扩展 | 需长期稳定低成本运行、需按任务选用不同模型、希望免于余额管理 |
 
-### 为什么推荐选 OpenCode（路线 B）
+### 选型依据：为何推荐方案 B
 
-这不是"哪个工具更先进"的问题，而是**真实踩过坑之后的选择**。下面每条都是实机验证过的结论。
+以下结论均基于实机验证，而非工具偏好。
 
-**1. 成本是真的会失控，而且失控得很突然**
+**1. 计费模型决定成本可控性**
 
-路线 A 是预充值按量计费。Claude Code 一旦进入 auto 模式并派出并行子代理，
-token 消耗是指数量级的：本项目的实测记录是**一个晚上把余额从 ¥9.95 烧成 -0.99**，
-第二天所有请求直接返回 402。你以为只是"让它帮我读几篇文献"，
-实际上它在后台开了七八个子任务各自跑循环。
+方案 A 采用预充值按量计费。当 Claude Code 进入 auto 模式并派生并行子代理时，
+token 消耗呈指数级增长。本项目实测记录：**单夜之内余额由 ¥9.95 变为 −0.99，
+次日全部请求返回 HTTP 402**。其成因是后台并行子任务各自循环调用，
+而非用户显式发起的请求。
 
-OpenCode Go 是订阅制额度（首月 $5 得 $60，之后 $10/月），并且带
-**5 小时 / 每周 / 每月**三级上限。最坏情况是这个窗口跑满额度歇一会儿，
-不会某天早上起来发现欠费、当天的活全干不了。对要长期做课题的人来说，
-"可预期"本身就有价值。
+OpenCode Go 采用订阅配额制，并设有 **5 小时 / 每周 / 每月**三级上限。
+最坏情况仅触发配额窗口限流，**不存在欠费导致服务完全中断的风险**。
+对于需要长期连续推进的课题而言，成本的可预期性本身即构成选型价值。
 
-**2. 一个客户端里有多家模型，可以按任务切换**
+**2. 模型供给的多源性与任务适配能力**
 
-路线 A 被锁死在 DeepSeek 一家。而真实科研工作里不同任务的最优模型并不一样：
-写分析脚本要代码强的，读长 PDF 要上下文长的，润色文字要中文语感好的，
-批量小任务要最便宜的。
+方案 A 的模型供给锁定于单一供应商。而科研工作中的不同任务对模型能力的要求并不一致：
+脚本编写依赖代码能力，长文献阅读依赖上下文长度，文本润色依赖中文表达质量，
+批量任务则优先考量单位成本。
 
-路线 B 里这些是 `/models` 一个列表的事：
+方案 B 下这些需求通过 `/models` 单一切换入口即可满足：
 
-| 任务 | 推荐模型 | 理由 |
+| 任务类型 | 推荐模型 | 依据 |
 |---|---|---|
-| 日常主力（写代码 + 科研问答） | **GLM-5.2** | 综合能力最平衡 |
-| 读长文献 / 整本 PDF | **Kimi K3** | 长上下文 |
-| 写综述、润色 | **Qwen3.8 Max** | 中文表达好 |
-| 批量改名、格式转换之类 | **DeepSeek V4 Flash** | 最便宜，省额度 |
-| 纯写代码（临时） | Kimi K2.7 Code | 代码特化，不建议当主力 |
+| 日常主力（代码 + 科研问答） | **GLM-5.2** | 综合能力最均衡 |
+| 长文献 / 整本 PDF 阅读 | **Kimi K3** | 长上下文窗口 |
+| 综述撰写与文本润色 | **Qwen3.8 Max** | 中文表达质量 |
+| 批量处理（重命名、格式转换） | **DeepSeek V4 Flash** | 单位成本最低 |
+| 纯代码编写（临时切换） | Kimi K2.7 Code | 代码特化，不建议作为主力 |
 
-**3. 协议上是"原生"而不是"套壳"**
+**3. 协议适配的一等公民支持**
 
-Claude Code 只说 Anthropic 协议。DeepSeek 提供的是 `/anthropic` 兼容端点，
-能用，但本质是别人家的协议适配层，属于降级兼容，边缘功能（缓存策略、
-部分工具调用行为）随时可能和官方 Claude 表现不一致，出了问题不好定位。
+Claude Code 仅实现 Anthropic 协议。DeepSeek 提供的 `/anthropic` 端点虽可用，
+但本质是第三方协议的适配层，属降级兼容，其缓存策略与部分工具调用行为
+可能与官方实现存在差异，且问题定位链路较长。
 
-OpenCode 从设计上就是多 provider 架构，OpenCode 兼容端点是原生支持的，
-OpenCode Go 在客户端里是一等公民，不需要任何"欺骗式"配置。
+OpenCode 在设计上即为多 provider 架构，OpenCode 兼容端点由客户端原生支持，
+OpenCode Go 无需任何额外的协议转换配置。
 
-**4. 安装过程对国内网络友好得多**
+**4. 受限网络环境下的可安装性**
 
-- `npm install -g opencode-ai` 走 npmmirror 镜像即可，
-  包体只有 3KB，真正的二进制在 `optionalDependencies` 的
-  `opencode-linux-x64`（约 57MB），npmmirror 有完整镜像，且子包没有 postinstall——
-  **不做任何二次下载**，所以不需要 GitHub、不需要代理。
-- 相比之下 Claude Code 的官方安装脚本依赖 GitHub，国内网络要绕。
+- `npm install -g opencode-ai` 经 npmmirror 镜像分发即可完成。
+  主包体积仅 3KB，实际二进制位于 `optionalDependencies` 的
+  `opencode-linux-x64`（约 57MB）；npmmirror 提供完整镜像，
+  且该子包**不含 postinstall 钩子**，不会发起二次下载。
+  因此全流程无需访问 GitHub、无需代理。
+- 相较之下，Claude Code 的官方安装脚本依赖 GitHub，在受限网络中需额外处理。
 
-**5. 配置只有一个文件，不折腾**
+**5. 配置收敛为单一文件**
 
-路线 B 的全部鉴权就是一个 JSON：
+方案 B 的全部鉴权信息即一个 JSON 对象：
 
 ```json
 { "opencode-go": { "type": "api", "key": "sk-go-xxxx" } }
 ```
 
-放在 `~/.local/share/opencode/auth.json` 即可。不需要像路线 A 那样
-配 `ANTHROPIC_BASE_URL`、三档模型名、还要预置 `~/.claude.json` 跳过登录向导。
+写入 `~/.local/share/opencode/auth.json` 即可生效。无需如方案 A 般
+配置 `ANTHROPIC_BASE_URL`、维护三档模型名、并预置 `~/.claude.json` 以跳过登录向导。
 
-**6. 你也应该知道的缺点（诚实清单）**
+**6. 方案 B 的已知局限**
 
-- 模型托管在美国 / 欧盟 / 新加坡，**国内有延迟**，和 DeepSeek 国内直连没法比
-- 生态比 Claude Code 新，插件、社区教程少
-- 没有 Claude Code 那样成熟的 VSCode 扩展
-- 额度有上限，超大批量任务会被限速窗口卡住
+- 模型节点位于美国 / 欧盟 / 新加坡，**境内访问存在附加时延**，不及 DeepSeek 境内直连
+- 生态相对较新，插件与社区教程数量有限
+- 尚未提供与 Claude Code 同等成熟度的 VSCode 扩展
+- 受配额上限约束，超大规模批量任务可能触发窗口限流
 
-**结论：如果你要长期、稳定、低成本地用 AI 做科研，选路线 B；
-如果你就认 Claude Code 那套交互、只在 DeepSeek 上跑且能控住量，选路线 A。
-两条路用的都是同一个 WSL2 + Ubuntu 底座，随时可以并行装、切换着用。**
+**选型结论：**
+
+> 若目标是长期、稳定、成本可控地以 AI 辅助科研工作，**选择方案 B**；
+> 若已深度依赖 Claude Code 的交互范式、仅使用 DeepSeek 且具备用量控制能力，**选择方案 A**。
+> 两者共用同一套 WSL2 + Ubuntu 底座，可并行安装并按任务切换，不存在互斥。
 
 ---
 
@@ -186,10 +188,10 @@ wsl-ubuntu-setup/
 ├── .gitignore                       ← 排除大文件与含密钥配置
 ├── scripts/
 │   ├── 01-install-wsl-ubuntu.ps1    ← Windows 管理员执行：装 WSL + Ubuntu
-│   ├── 02-setup-claude.sh           ← 路线 A：Node.js + Claude Code + DeepSeek 配置
-│   ├── 03-verify.sh                 ← 路线 A：逐项自动化验证
+│   ├── 02-setup-claude.sh           ← 方案 A：Node.js + Claude Code + DeepSeek 配置
+│   ├── 03-verify.sh                 ← 方案 A：逐项自动化验证
 │   ├── 04-verify.ps1                ← Windows 执行：概览验证
-│   └── 05-install-opencode.sh       ← 路线 B：装 OpenCode + 写 OpenCode Go 鉴权
+│   └── 05-install-opencode.sh       ← 方案 B：装 OpenCode + 写 OpenCode Go 鉴权
 ├── config/
 │   └── deepseek-settings.example.json   ← DeepSeek 配置模板（Key 为占位符）
 └── docs/
@@ -374,9 +376,9 @@ Retype new password: ******
 
 ---
 
-## 7. 阶段三：安装 Claude Code CLI（路线 A）
+## 7. 阶段三：安装 Claude Code CLI（方案 A）
 
-> 走路线 B（OpenCode）的话，**第 7~9 节整段跳过**，直接看 [第 14 节](#14-路线-bopencode--opencode-go)。
+> 走方案 B（OpenCode）的话，**第 7~9 节整段跳过**，直接看 [第 14 节](#14-方案-bopencode--opencode-go)。
 
 在 Ubuntu 内执行（脚本内 `KEY` 需自行提供）：
 
@@ -403,7 +405,7 @@ claude --version
 
 ---
 
-## 8. 阶段四：接入 DeepSeek API（路线 A）
+## 8. 阶段四：接入 DeepSeek API（方案 A）
 
 ### 8.1 配置文件
 
@@ -469,7 +471,7 @@ export ANTHROPIC_MODEL='deepseek-v4-pro[1m]'
 
 ---
 
-## 9. 阶段五：验证（路线 A）
+## 9. 阶段五：验证（方案 A）
 
 ### 9.1 WSL 内逐项验证
 
@@ -604,7 +606,7 @@ D 组做真实端到端调用，超时 180 秒。
 
 ➡️ **[`docs/USAGE.md`](./docs/USAGE.md)**
 
-走路线 B（OpenCode）的话，日常用法见 **[第 14.6 节](#146-日常用法)**，
+走方案 B（OpenCode）的话，日常用法见 **[第 14.6 节](#146-日常用法)**，
 `docs/USAGE.md` 里的"省 token、写好项目说明文件"等思路同样适用。
 
 最值得先做的三件事：
@@ -615,11 +617,11 @@ D 组做真实端到端调用，超时 180 秒。
 
 ---
 
-## 14. 路线 B：OpenCode + OpenCode Go
+## 14. 方案 B：OpenCode + OpenCode Go
 
 这一节独立于第 7~9 节。前提只是：**WSL2 + Ubuntu 已经装好**（第 5、6 节）。
 
-### 14.0 先搞清楚三个概念
+### 14.0 概念界定
 
 | 名词 | 是什么 |
 |---|---|
@@ -627,12 +629,12 @@ D 组做真实端到端调用，超时 180 秒。
 | **OpenCode Go** | OpenCode 官方的**订阅服务**，买了它就有额度和一批模型可用 |
 | **模型** | GLM-5.2、Kimi K3、Qwen3.8 Max 等，由 OpenCode Go 提供，在客户端里 `/models` 切换 |
 
-一句话：**OpenCode 是工具，OpenCode Go 是给它供模型的订阅。**
+简言之：**OpenCode 是客户端工具，OpenCode Go 是为其提供模型与配额的订阅服务。**
 （OpenCode ≠ OpenAI，两者没关系。）
 
 ### 14.1 前置：Node.js
 
-如果已经跑过路线 A 的 `02-setup-claude.sh`，Node 22 已经装好了，跳过这步。
+如果已经跑过方案 A 的 `02-setup-claude.sh`，Node 22 已经装好了，跳过这步。
 否则：
 
 ```bash
@@ -726,7 +728,7 @@ Kimi K2.7 Code
 | 批量小任务（改名、格式转换） | **DeepSeek V4 Flash**（最省额度） |
 | 纯写代码（临时切） | Kimi K2.7 Code（代码特化，不建议当主力） |
 
-**选错了随时换**：`/models` 回车重新选，只影响之后的对话，不会损坏任何东西。
+**模型可随时重新选择**：`/models` 回车即可切换，仅影响后续对话，不会对既有配置或文件造成破坏。
 
 ### 14.6 日常用法
 
@@ -776,16 +778,16 @@ TUI 的图标和表格线才不会变成乱码方块）：
 | Ubuntu | 26.04.1 LTS |
 | 内核 | 6.18.33.2-microsoft-standard-WSL2 |
 | Node.js | v22 LTS（从 npmmirror 镜像下载，装到 `~/.local/node`，需 ≥ 18） |
-| 路线 A 客户端 | Claude Code `@anthropic-ai/claude-code` 最新版 |
-| 路线 A 模型 | `deepseek-v4-pro[1m]` / `deepseek-v4-flash[1m]` |
-| 路线 B 客户端 | OpenCode `opencode-ai`（二进制 `opencode-linux-x64`） |
-| 路线 B 服务 | OpenCode Go（Key 前缀 `sk-go-`） |
-| 路线 B 模型 | GLM-5.2 / Kimi K3 / Qwen3.8 Max / DeepSeek V4 Flash / GPT-5.6 Luna |
+| 方案 A 客户端 | Claude Code `@anthropic-ai/claude-code` 最新版 |
+| 方案 A 模型 | `deepseek-v4-pro[1m]` / `deepseek-v4-flash[1m]` |
+| 方案 B 客户端 | OpenCode `opencode-ai`（二进制 `opencode-linux-x64`） |
+| 方案 B 服务 | OpenCode Go（Key 前缀 `sk-go-`） |
+| 方案 B 模型 | GLM-5.2 / Kimi K3 / Qwen3.8 Max / DeepSeek V4 Flash / GPT-5.6 Luna |
 
 > **实机验证**：上述组合于 2026-09-20 在一台真实 Windows 11 机器上从零跑通全流程
 > （WSL2 → Ubuntu → Claude Code CLI → DeepSeek 端到端对话），
 > 安装脚本在无代理环境下完成，DeepSeek `/models` 与 `/anthropic/v1/messages` 均返回 200。
 >
-> **路线 B 实机验证**：2026-09-22 在同一台机器上装通 OpenCode CLI（npmmirror，无代理），
+> **方案 B 实机验证**：2026-09-22 在同一台机器上装通 OpenCode CLI（npmmirror，无代理），
 > 写入 `auth.json` 后 TUI 状态栏显示 `OpenCode Go`，`/models` 列表正常，
 > 选用 GLM-5.2 完成真实对话。
