@@ -72,18 +72,19 @@ and route B (OpenCode CLI + OpenCode Go, the author's current daily driver).
 [第 6 节](#6-阶段二创建-unix-账号)）。二者仅在"Ubuntu 就绪后部署哪一套 AI 编程工具"上产生分岔。
 
 ```mermaid
+%%{init: {"themeVariables": {"fontSize": "16px"}, "flowchart": {"nodeSpacing": 50, "rankSpacing": 70, "curve": "basis"}}}%%
 flowchart LR
-    START(["Windows 11 裸机"]) --> WSL(["阶段一：WSL2 运行时"])
-    WSL --> UB(["阶段二：Ubuntu 26.04"])
+    START(["Win11"]) --> WSL(["WSL2"])
+    WSL --> UB(["Ubuntu"])
     UB --> SEL(["技术选型"])
 
-    SEL -->|"方案 A"| A1(["Claude Code CLI"])
-    SEL -->|"方案 B · 推荐"| B1(["OpenCode CLI"])
+    SEL -->|"方案 A"| A1(["Claude Code"])
+    SEL -->|"方案 B · 推荐"| B1(["OpenCode"])
 
-    A1 --> A2(["DeepSeek API<br/>按量计费 · 单一模型"])
-    B1 --> B2(["OpenCode Go<br/>订阅配额 · 9 个模型"])
+    A1 --> A2(["DeepSeek API"])
+    B1 --> B2(["OpenCode Go"])
 
-    A2 --> A3(["第 7 ~ 9 节"])
+    A2 --> A3(["第 7~9 节"])
     B2 --> B3(["第 10 节"])
 
     classDef base fill:#f6f8fa,stroke:#57606a,color:#24292f
@@ -98,9 +99,9 @@ flowchart LR
 ```
 
 > 若当前环境无法渲染 Mermaid，此处等价的文字结构为：
-> `Windows 11 裸机 → WSL2 → Ubuntu 26.04` 为两方案共用的底座；
-> 其后的分岔为 **方案 A（Claude Code CLI + DeepSeek API，第 7~9 节）**
-> 与 **方案 B（OpenCode CLI + OpenCode Go，第 10 节）**。
+> `Win11 → WSL2 → Ubuntu` 为两方案共用的底座；
+> 其后的分岔为 **方案 A（Claude Code + DeepSeek API，第 7~9 节）**
+> 与 **方案 B（OpenCode + OpenCode Go，第 10 节）**。
 
 ### 方案对比
 
