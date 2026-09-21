@@ -23,7 +23,7 @@
 - [11. 排障手册](#11-排障手册)
 - [12. 安全须知](#12-安全须知)
 - [13. 使用手册](#13-使用手册)
-- [14. 方案 B：OpenCode + OpenCode Go](#14-方案-bopencode--opencode-go)
+- [14. OpenCode + OpenCode Go（方案 B）](#14-opencode--opencode-go方案-b)
 
 ---
 
@@ -378,7 +378,7 @@ Retype new password: ******
 
 ## 7. 阶段三：安装 Claude Code CLI（方案 A）
 
-> 走方案 B（OpenCode）的话，**第 7~9 节整段跳过**，直接看 [第 14 节](#14-方案-bopencode--opencode-go)。
+> 走方案 B（OpenCode）的话，**第 7~9 节整段跳过**，直接看 [第 14 节](#14-opencode--opencode-go方案-b)。
 
 在 Ubuntu 内执行（脚本内 `KEY` 需自行提供）：
 
@@ -617,7 +617,7 @@ D 组做真实端到端调用，超时 180 秒。
 
 ---
 
-## 14. 方案 B：OpenCode + OpenCode Go
+## 14. OpenCode + OpenCode Go（方案 B）
 
 这一节独立于第 7~9 节。前提只是：**WSL2 + Ubuntu 已经装好**（第 5、6 节）。
 
