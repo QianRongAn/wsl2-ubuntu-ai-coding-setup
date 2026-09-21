@@ -19,11 +19,11 @@
 - [7. 阶段三：安装 Claude Code CLI（方案 A）](#7-阶段三安装-claude-code-cli方案-a)
 - [8. 阶段四：接入 DeepSeek API（方案 A）](#8-阶段四接入-deepseek-api方案-a)
 - [9. 阶段五：验证（方案 A）](#9-阶段五验证方案-a)
-- [10. 脚本功能详解](#10-脚本功能详解)
-- [11. 排障手册](#11-排障手册)
-- [12. 安全须知](#12-安全须知)
-- [13. 使用手册](#13-使用手册)
-- [14. OpenCode + OpenCode Go（方案 B）](#14-opencode--opencode-go方案-b)
+- [10. OpenCode + OpenCode Go（方案 B）](#10-opencode--opencode-go方案-b)
+- [11. 脚本功能详解](#11-脚本功能详解)
+- [12. 排障手册](#12-排障手册)
+- [13. 安全须知](#13-安全须知)
+- [14. 使用手册](#14-使用手册)
 
 ---
 
@@ -77,7 +77,7 @@ flowchart TD
     B1 --> B2["接入 OpenCode Go<br/>订阅配额 · 多模型切换"]
 
     A2 --> A3["第 7 ~ 9 节"]
-    B2 --> B3["第 14 节"]
+    B2 --> B3["第 10 节"]
 
     classDef base fill:#f6f8fa,stroke:#57606a,color:#24292f
     classDef pick fill:#fff8e5,stroke:#bf8700,color:#24292f
@@ -93,7 +93,7 @@ flowchart TD
 > 若当前环境无法渲染 Mermaid，此处等价的文字结构为：
 > `Windows 11 裸机 → WSL2 → Ubuntu 26.04` 为两方案共用的底座；
 > 其后的分岔为 **方案 A（Claude Code CLI + DeepSeek API，第 7~9 节）**
-> 与 **方案 B（OpenCode CLI + OpenCode Go，第 14 节）**。
+> 与 **方案 B（OpenCode CLI + OpenCode Go，第 10 节）**。
 
 ### 方案对比
 
@@ -439,7 +439,7 @@ Retype new password: ******
 
 ## 7. 阶段三：安装 Claude Code CLI（方案 A）
 
-> 走方案 B（OpenCode）的话，**第 7~9 节整段跳过**，直接看 [第 14 节](#14-opencode--opencode-go方案-b)。
+> 走方案 B（OpenCode）的话，**第 7~9 节整段跳过**，直接看 [第 10 节](#10-opencode--opencode-go方案-b)。
 
 在 Ubuntu 内执行（脚本内 `KEY` 需自行提供）：
 
@@ -575,7 +575,160 @@ claude -p "只回复两个字：可用" --output-format text
 
 ---
 
-## 10. 脚本功能详解
+## 10. OpenCode + OpenCode Go（方案 B）
+
+这一节独立于第 7~9 节。前提只是：**WSL2 + Ubuntu 已经装好**（第 5、6 节）。
+
+### 10.0 概念界定
+
+| 名词 | 是什么 |
+|---|---|
+| **OpenCode** | 一个开源 AI 编程**工具**（TUI，跑在终端里），相当于 Claude Code 的位置 |
+| **OpenCode Go** | OpenCode 官方的**订阅服务**，买了它就有额度和一批模型可用 |
+| **模型** | GLM-5.2、Kimi K3、Qwen3.8 Max 等，由 OpenCode Go 提供，在工具内 `/models` 切换 |
+
+简言之：**OpenCode 是终端编程工具，OpenCode Go 是为其提供模型与配额的订阅服务。**
+（OpenCode ≠ OpenAI，两者没关系。）
+
+### 10.1 前置：Node.js
+
+如果已经跑过方案 A 的 `02-setup-claude.sh`，Node 22 已经装好了，跳过这步。
+否则：
+
+```bash
+bash scripts/02-setup-claude.sh   # 只要它装 Node 的部分即可，中途 Ctrl+C 也无妨
+node -v                            # 需要 >= 18
+```
+
+### 10.2 安装 OpenCode CLI
+
+```bash
+npm install -g opencode-ai --registry=https://registry.npmmirror.com
+opencode --version
+```
+
+如果 `opencode: command not found`：
+
+```bash
+export PATH="$HOME/.local/node/bin:$PATH"
+# 永久生效：
+echo 'export PATH="$HOME/.local/node/bin:$PATH"' >> ~/.bashrc && source ~/.bashrc
+```
+
+> 为什么国内也能装：`opencode-ai` 主包只有 3KB，真正的二进制在
+> `optionalDependencies` 的 `opencode-linux-x64`（约 57MB），
+> npmmirror 有完整镜像，且**子包没有 postinstall**，不会二次联网下载。
+> 全程不需要 GitHub、不需要代理。
+
+### 10.3 配置 OpenCode Go 的 Key
+
+**方式一（推荐）：直接写文件，绕开 TUI 输入框**
+
+```bash
+mkdir -p ~/.local/share/opencode
+read -p "Paste your key then press Enter: " K
+printf '{"opencode-go":{"type":"api","key":"%s"}}\n' "$K" > ~/.local/share/opencode/auth.json
+chmod 600 ~/.local/share/opencode/auth.json
+```
+
+粘贴时右键会被 TUI 拦截，用 **Ctrl+Shift+V** 或 **Shift+Insert**。
+
+**方式二：一条命令自动化脚本**
+
+```bash
+bash scripts/05-install-opencode.sh
+# 或带 key：
+OPENCODE_GO_API_KEY='sk-go-xxxx' bash scripts/05-install-opencode.sh
+```
+
+**方式三：TUI 里 `/connect`**
+
+进 OpenCode 后输入 `/connect` → 选 OpenCode Go → 贴 Key。
+注意：**密码框不显示任何字符**，粘贴后看起来是空的，其实已经进去了，
+直接回车即可。看不习惯就用方式一。
+
+### 10.4 启动与验证
+
+```bash
+cd ~/你的项目目录      # 重要：OpenCode 只"看见"当前目录的文件
+opencode
+```
+
+验证三件事：
+
+1. 底部状态栏显示 **OpenCode Go** → Key 生效了
+2. 底部显示当前模型名（如 `GLM-5.2`）→ 模型可用
+3. 输入一句话有回复 → 端到端通了
+
+### 10.5 选模型
+
+在 OpenCode 里输入 `/models` 回车（或 `Ctrl+P` → models），列表大致是：
+
+```
+Muse Spark 1.2 Contributor
+Qwen3.8 Max
+DeepSeek V4 Flash
+Kimi K3
+GPT-5.6 Luna
+Hy3
+LongCat-2.0
+GLM-5.2
+Kimi K2.7 Code
+```
+
+**按任务选（生信 / 科研场景）：**
+
+| 场景 | 模型 |
+|---|---|
+| 日常主力：写代码 + 科研问答 | **GLM-5.2** |
+| 读长文献、整本 PDF | **Kimi K3** |
+| 写综述、润色中文 | **Qwen3.8 Max** |
+| 批量小任务（改名、格式转换） | **DeepSeek V4 Flash**（最省额度） |
+| 纯写代码（临时切） | Kimi K2.7 Code（代码特化，不建议当主力） |
+
+**模型可随时重新选择**：`/models` 回车即可切换，仅影响后续对话，不会对既有配置或文件造成破坏。
+
+### 10.6 日常用法
+
+- 拖文件进终端窗口，路径会自动填入输入框
+- 输入 `@` 弹出当前目录文件列表，选文件即可让它读（PDF、Word、fasta、csv 都行）
+- PDF 建议先装解析工具：`sudo apt install -y poppler-utils`
+- 它会请求执行命令，涉及删除/覆盖看清楚再同意；**Esc 可随时打断**
+- `/models` 换模型，`/undo` 撤销上一轮改动
+
+**给模型的第一句话建议把背景说全**，例如：
+
+```
+我在做博士开题，方向是 XX 的生信分析。
+请先读 @1.pdf 和 @2.pdf，总结这个领域的主流方法、数据缺口，
+输出一份中文提纲。
+```
+
+### 10.7 排障
+
+| 现象 | 原因 | 处理 |
+|---|---|---|
+| `opencode: command not found` | PATH 没加载 | `source ~/.bashrc`，或用 `~/.local/node/bin/opencode` |
+| 右键粘贴没反应 | TUI 拦截了右键 | `Ctrl+Shift+V` / `Shift+Insert` |
+| `/connect` 里输入后看不见字符 | 密码框不回显 | 正常，直接回车；不放心就用 14.3 方式一 |
+| 状态栏没显示 OpenCode Go | `auth.json` 没写对 | 检查 `~/.local/share/opencode/auth.json`，provider id 必须是 `opencode-go` |
+| 响应很慢 | 模型在境外 | 换 DeepSeek V4 Flash，或避开高峰 |
+| 分不清 key 里的 `I` 和 `l` | 字体问题 | 别手打，用 14.3 的方式一粘贴 |
+
+### 10.8 终端字体（中英文混排难看时）
+
+终端字体不含中文时，中文会回退成宋体，和英文对不齐。解决办法是装一款
+**中英文等宽的编程字体**，推荐 **Maple Mono NF CN**（含 Nerd Font 图标，
+TUI 的图标和表格线才不会变成乱码方块）：
+
+1. 下载安装 [Maple Mono NF CN](https://github.com/subframe7536/maple-font/releases)
+2. Windows Terminal：`Ctrl + ,` → Ubuntu 配置文件 → **外观** → 字体 → 选 `Maple Mono NF CN`
+   （快捷键没反应多半是中文输入法拦截了，先切英文输入法）
+3. 老版控制台窗口：右键标题栏 → **属性** → 字体 → 选 `Maple Mono NF CN`
+
+---
+
+## 11. 脚本功能详解
 
 ### `scripts/01-install-wsl-ubuntu.ps1`（Windows，管理员）
 
@@ -613,9 +766,15 @@ D 组做真实端到端调用，超时 180 秒。
 
 从 Windows 侧一次性打印发行版列表、WSL 状态，并进入 WSL 探测内核、Node、npm、claude、配置。
 
+### `scripts/05-install-opencode.sh`（WSL 内）
+
+方案 B 专用：安装 OpenCode CLI（`opencode-ai`，npmmirror 镜像），并把 OpenCode Go 的 Key
+写入 `~/.local/share/opencode/auth.json`（权限 600）。用法：
+`OPENCODE_GO_API_KEY='sk-go-xxx' bash 05-install-opencode.sh`，不带 Key 时交互式询问。
+
 ---
 
-## 11. 排障手册
+## 12. 排障手册
 
 | 现象 | 原因 | 处理 |
 |---|---|---|
@@ -652,7 +811,7 @@ D 组做真实端到端调用，超时 180 秒。
 
 ---
 
-## 12. 安全须知
+## 13. 安全须知
 
 - **不要把真实 API Key 提交进仓库**。仓库只提供 `config/deepseek-settings.example.json` 占位模板；`.gitignore` 已排除 `*settings.json`、`*.key`。
 - 配置文件建议 `chmod 600 ~/.claude/settings.json`。
@@ -661,13 +820,13 @@ D 组做真实端到端调用，超时 180 秒。
 
 ---
 
-## 13. 使用手册
+## 14. 使用手册
 
 安装完成只是起点。日常怎么用 Claude Code、斜杠命令清单、省 token 技巧、`CLAUDE.md` 怎么写、DeepSeek 报错速查，全部在：
 
 ➡️ **[`docs/USAGE.md`](./docs/USAGE.md)**
 
-走方案 B（OpenCode）的话，日常用法见 **[第 14.6 节](#146-日常用法)**，
+走方案 B（OpenCode）的话，日常用法见 **[第 10.6 节](#106-日常用法)**，
 `docs/USAGE.md` 里的"省 token、写好项目说明文件"等思路同样适用。
 
 最值得先做的三件事：
@@ -675,159 +834,6 @@ D 组做真实端到端调用，超时 180 秒。
 1. 进项目目录再启动（`cd ~/项目 && claude` 或 `opencode`），别在 `~` 里启动
 2. 新项目先跑 `/init` 生成 `CLAUDE.md`（OpenCode 同样支持项目说明文件）
 3. 出问题先敲 `/doctor`（OpenCode 用 `/models` 确认模型和额度）
-
----
-
-## 14. OpenCode + OpenCode Go（方案 B）
-
-这一节独立于第 7~9 节。前提只是：**WSL2 + Ubuntu 已经装好**（第 5、6 节）。
-
-### 14.0 概念界定
-
-| 名词 | 是什么 |
-|---|---|
-| **OpenCode** | 一个开源 AI 编程**工具**（TUI，跑在终端里），相当于 Claude Code 的位置 |
-| **OpenCode Go** | OpenCode 官方的**订阅服务**，买了它就有额度和一批模型可用 |
-| **模型** | GLM-5.2、Kimi K3、Qwen3.8 Max 等，由 OpenCode Go 提供，在工具内 `/models` 切换 |
-
-简言之：**OpenCode 是终端编程工具，OpenCode Go 是为其提供模型与配额的订阅服务。**
-（OpenCode ≠ OpenAI，两者没关系。）
-
-### 14.1 前置：Node.js
-
-如果已经跑过方案 A 的 `02-setup-claude.sh`，Node 22 已经装好了，跳过这步。
-否则：
-
-```bash
-bash scripts/02-setup-claude.sh   # 只要它装 Node 的部分即可，中途 Ctrl+C 也无妨
-node -v                            # 需要 >= 18
-```
-
-### 14.2 安装 OpenCode CLI
-
-```bash
-npm install -g opencode-ai --registry=https://registry.npmmirror.com
-opencode --version
-```
-
-如果 `opencode: command not found`：
-
-```bash
-export PATH="$HOME/.local/node/bin:$PATH"
-# 永久生效：
-echo 'export PATH="$HOME/.local/node/bin:$PATH"' >> ~/.bashrc && source ~/.bashrc
-```
-
-> 为什么国内也能装：`opencode-ai` 主包只有 3KB，真正的二进制在
-> `optionalDependencies` 的 `opencode-linux-x64`（约 57MB），
-> npmmirror 有完整镜像，且**子包没有 postinstall**，不会二次联网下载。
-> 全程不需要 GitHub、不需要代理。
-
-### 14.3 配置 OpenCode Go 的 Key
-
-**方式一（推荐）：直接写文件，绕开 TUI 输入框**
-
-```bash
-mkdir -p ~/.local/share/opencode
-read -p "Paste your key then press Enter: " K
-printf '{"opencode-go":{"type":"api","key":"%s"}}\n' "$K" > ~/.local/share/opencode/auth.json
-chmod 600 ~/.local/share/opencode/auth.json
-```
-
-粘贴时右键会被 TUI 拦截，用 **Ctrl+Shift+V** 或 **Shift+Insert**。
-
-**方式二：一条命令自动化脚本**
-
-```bash
-bash scripts/05-install-opencode.sh
-# 或带 key：
-OPENCODE_GO_API_KEY='sk-go-xxxx' bash scripts/05-install-opencode.sh
-```
-
-**方式三：TUI 里 `/connect`**
-
-进 OpenCode 后输入 `/connect` → 选 OpenCode Go → 贴 Key。
-注意：**密码框不显示任何字符**，粘贴后看起来是空的，其实已经进去了，
-直接回车即可。看不习惯就用方式一。
-
-### 14.4 启动与验证
-
-```bash
-cd ~/你的项目目录      # 重要：OpenCode 只"看见"当前目录的文件
-opencode
-```
-
-验证三件事：
-
-1. 底部状态栏显示 **OpenCode Go** → Key 生效了
-2. 底部显示当前模型名（如 `GLM-5.2`）→ 模型可用
-3. 输入一句话有回复 → 端到端通了
-
-### 14.5 选模型
-
-在 OpenCode 里输入 `/models` 回车（或 `Ctrl+P` → models），列表大致是：
-
-```
-Muse Spark 1.2 Contributor
-Qwen3.8 Max
-DeepSeek V4 Flash
-Kimi K3
-GPT-5.6 Luna
-Hy3
-LongCat-2.0
-GLM-5.2
-Kimi K2.7 Code
-```
-
-**按任务选（生信 / 科研场景）：**
-
-| 场景 | 模型 |
-|---|---|
-| 日常主力：写代码 + 科研问答 | **GLM-5.2** |
-| 读长文献、整本 PDF | **Kimi K3** |
-| 写综述、润色中文 | **Qwen3.8 Max** |
-| 批量小任务（改名、格式转换） | **DeepSeek V4 Flash**（最省额度） |
-| 纯写代码（临时切） | Kimi K2.7 Code（代码特化，不建议当主力） |
-
-**模型可随时重新选择**：`/models` 回车即可切换，仅影响后续对话，不会对既有配置或文件造成破坏。
-
-### 14.6 日常用法
-
-- 拖文件进终端窗口，路径会自动填入输入框
-- 输入 `@` 弹出当前目录文件列表，选文件即可让它读（PDF、Word、fasta、csv 都行）
-- PDF 建议先装解析工具：`sudo apt install -y poppler-utils`
-- 它会请求执行命令，涉及删除/覆盖看清楚再同意；**Esc 可随时打断**
-- `/models` 换模型，`/undo` 撤销上一轮改动
-
-**给模型的第一句话建议把背景说全**，例如：
-
-```
-我在做博士开题，方向是 XX 的生信分析。
-请先读 @1.pdf 和 @2.pdf，总结这个领域的主流方法、数据缺口，
-输出一份中文提纲。
-```
-
-### 14.7 排障
-
-| 现象 | 原因 | 处理 |
-|---|---|---|
-| `opencode: command not found` | PATH 没加载 | `source ~/.bashrc`，或用 `~/.local/node/bin/opencode` |
-| 右键粘贴没反应 | TUI 拦截了右键 | `Ctrl+Shift+V` / `Shift+Insert` |
-| `/connect` 里输入后看不见字符 | 密码框不回显 | 正常，直接回车；不放心就用 14.3 方式一 |
-| 状态栏没显示 OpenCode Go | `auth.json` 没写对 | 检查 `~/.local/share/opencode/auth.json`，provider id 必须是 `opencode-go` |
-| 响应很慢 | 模型在境外 | 换 DeepSeek V4 Flash，或避开高峰 |
-| 分不清 key 里的 `I` 和 `l` | 字体问题 | 别手打，用 14.3 的方式一粘贴 |
-
-### 14.8 终端字体（中英文混排难看时）
-
-终端字体不含中文时，中文会回退成宋体，和英文对不齐。解决办法是装一款
-**中英文等宽的编程字体**，推荐 **Maple Mono NF CN**（含 Nerd Font 图标，
-TUI 的图标和表格线才不会变成乱码方块）：
-
-1. 下载安装 [Maple Mono NF CN](https://github.com/subframe7536/maple-font/releases)
-2. Windows Terminal：`Ctrl + ,` → Ubuntu 配置文件 → **外观** → 字体 → 选 `Maple Mono NF CN`
-   （快捷键没反应多半是中文输入法拦截了，先切英文输入法）
-3. 老版控制台窗口：右键标题栏 → **属性** → 字体 → 选 `Maple Mono NF CN`
 
 ---
 
