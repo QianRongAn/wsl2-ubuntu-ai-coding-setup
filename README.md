@@ -72,11 +72,11 @@ and route B (OpenCode CLI + OpenCode Go, the author's current daily driver).
 [第 6 节](#6-阶段二创建-unix-账号)）。二者仅在"Ubuntu 就绪后部署哪一套 AI 编程工具"上产生分岔。
 
 ```mermaid
-%%{init: {"themeVariables": {"fontSize": "18px"}, "flowchart": {"nodeSpacing": 30, "rankSpacing": 40, "curve": "basis", "padding": 6}}}%%
+%%{init: {"themeVariables": {"fontSize": "16px"}, "flowchart": {"nodeSpacing": 20, "rankSpacing": 24, "curve": "basis", "padding": 4}}}%%
 flowchart LR
     A(["Win11"]) --> B(["WSL2"]) --> C(["Ubuntu"]) --> D(["技术选型"])
-    D -->|"方案 A · 第 7~9 节"| E(["Claude Code + DeepSeek"])
-    D -->|"方案 B · 推荐 · 第 10 节"| F(["OpenCode + OpenCode Go"])
+    D -->|"方案 A"| E(["Claude Code<br/>+ DeepSeek"])
+    D -->|"方案 B · 推荐"| F(["OpenCode<br/>+ OpenCode Go"])
 
     classDef base fill:#f6f8fa,stroke:#57606a,color:#24292f
     classDef pick fill:#fff8e5,stroke:#bf8700,color:#24292f
