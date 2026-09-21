@@ -1,18 +1,13 @@
 # WSL2 + Ubuntu + AI 编程工具 一键配置工程
 
-在 Windows 11 上**一键搭建 WSL2 + Ubuntu 开发环境**，并接入 AI 编程工具跑大模型。两条方案任选：
+在 Windows 11 上**一键搭建 WSL2 + Ubuntu 开发环境**，并接入 AI 编程工具跑大模型。两条方案任选，核心区别一眼看懂：
 
-- **方案 A**：Claude Code CLI + DeepSeek API（按 token 计费）
-- **方案 B**：OpenCode CLI + OpenCode Go（订阅配额，9 个模型可切换）——**推荐**
-
-**为什么用它：**
-
-| 特点 | 说明 |
-|---|---|
-| 一键到底 | 脚本全自动，不用手动 `wsl --install` 反复踩坑 |
-| 免商店、免代理 | 微软商店 CDN 被墙、GitHub 连不上也能装 |
-| 装完即用 | 自带验证脚本，几分钟跑通「环境 + 模型对话」 |
-| 两条方案按需选 | 要省钱按量、要多模型订阅，都有现成方案 |
+| | **方案 A** | **方案 B**（推荐） |
+|---|---|---|
+| 工具 + 模型 | Claude Code CLI + DeepSeek API | OpenCode CLI + OpenCode Go |
+| 计费 | 按 token 预充值 | 订阅配额（$10/月） |
+| 模型数量 | 2 个 | 9 个，`/models` 随时切换 |
+| 适合 | 只用 DeepSeek、能自主控量 | 长期稳定省钱、需要多模型 |
 
 **快速开始：** 方案 A 看 [第 5~9 节](#5-阶段一安装-wsl2--ubuntu)，方案 B 看 [第 10 节](#10-opencode--opencode-go方案-b)。
 
@@ -77,19 +72,19 @@ and route B (OpenCode CLI + OpenCode Go, the author's current daily driver).
 [第 6 节](#6-阶段二创建-unix-账号)）。二者仅在"Ubuntu 就绪后部署哪一套 AI 编程工具"上产生分岔。
 
 ```mermaid
-flowchart TD
-    START["Windows 11 裸机"] --> WSL["阶段一：部署 WSL2 运行时"]
-    WSL --> UB["阶段二：Ubuntu 26.04 + UNIX 账号"]
-    UB --> SEL{"技术选型"}
+flowchart LR
+    START(["Windows 11 裸机"]) --> WSL(["阶段一：WSL2 运行时"])
+    WSL --> UB(["阶段二：Ubuntu 26.04"])
+    UB --> SEL(["技术选型"])
 
-    SEL -->|"方案 A"| A1["Claude Code CLI"]
-    SEL -->|"方案 B · 推荐"| B1["OpenCode CLI"]
+    SEL -->|"方案 A"| A1(["Claude Code CLI"])
+    SEL -->|"方案 B · 推荐"| B1(["OpenCode CLI"])
 
-    A1 --> A2["接入 DeepSeek API<br/>按量计费 · 单一模型"]
-    B1 --> B2["接入 OpenCode Go<br/>订阅配额 · 多模型切换"]
+    A1 --> A2(["DeepSeek API<br/>按量计费 · 单一模型"])
+    B1 --> B2(["OpenCode Go<br/>订阅配额 · 9 个模型"])
 
-    A2 --> A3["第 7 ~ 9 节"]
-    B2 --> B3["第 10 节"]
+    A2 --> A3(["第 7 ~ 9 节"])
+    B2 --> B3(["第 10 节"])
 
     classDef base fill:#f6f8fa,stroke:#57606a,color:#24292f
     classDef pick fill:#fff8e5,stroke:#bf8700,color:#24292f
