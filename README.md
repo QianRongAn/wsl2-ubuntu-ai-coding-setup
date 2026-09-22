@@ -863,54 +863,8 @@ MINIO_IMAGE=registry.example.com/minio:tag bash scripts/06-install-docker-minio.
 这一节是可选的**加装件**：前面的编程工具链路（方案 A / B）跑通后，如果项目需要容器化运行、
 或需要一个本地 S3 兼容的对象存储（存模型权重、数据集、构建产物、备份），再按本节执行。
 
-### 15.0 先搞懂这两个东西是什么
-
-跳过概念直接敲命令，出问题时无从判断。这里用最小篇幅讲清**机制**。
-
-**Docker 解决的是"环境不可复现"。**
-
-传统做法是在一台机器上手工装依赖（Python 版本、系统库、CUDA……），换台机器或过几个月重装，
-版本一变就跑不起来。Docker 的做法是把"应用 + 它依赖的整个用户空间"打包成一个可分发的东西
-——**镜像**，运行时再把它跑起来——**容器**。
-
-- **镜像**是**分层**的只读文件包，每层有独立的 sha256。你在 Dockerfile 里写一条指令就生成一层。
-  因为按内容寻址，相同内容只存一份、拉取时只下缺失的层（和 git 按对象存储是一个思路）。
-- **容器**不是虚拟机。**它和宿主共享同一个内核**，没有第二个操作系统。Docker 只是用内核的几个
-  能力把进程能看到的世界改小了：`namespaces` 隔离视图（独立的进程树、网卡、挂载点）、
-  `cgroups` 限制 CPU/内存用量、`capabilities` 削减权限、`pivot_root` 换根目录。
-  所以容器启动是毫秒级，而虚拟机要几十秒。
-
-自己验证（装完 Docker 后跑）：
-
-```bash
-docker run --rm alpine uname -r    # 内核版本
-uname -r                           # 两个输出完全相同 → 证明共享同一个内核
-```
-
-**MinIO 解决的是"数据该放哪"。**
-
-MinIO 是**自建的对象存储**，接口与亚马逊 S3 **完全兼容**。核心抽象只有两个：
-
-| 概念 | 说明 |
-|---|---|
-| Bucket（桶） | 顶层容器，名字全局唯一、全小写。类似"一个硬盘分区"或"一个顶级目录" |
-| Object（对象） | 桶里的文件，以 `key`（路径字符串）定位。没有真正的目录层级，`a/b/c.txt` 只是个名字 |
-
-它的价值在于**把数据从容器/机器的生命周期里解耦出来**：
-
-- 容器是可丢弃的 —— 删了重建，里面写的东西全没了
-- 数据不该跟着容器一起消失 —— 所以放到 MinIO（或挂载的宿主机目录）里
-
-对你做科研的典型用途：
-
-- 数据集、模型权重、中间产物统一存放，换机器/换容器都能直接取
-- 多个实验共享同一份数据，不用互相拷贝几十 GB
-- 训练脚本用 `boto3` 读写，和以后真要上云（AWS S3、腾讯 COS、阿里 OSS）的代码**几乎不用改**
-  —— 这是"S3 兼容"最实际的好处：本地调试、云端运行，同一套代码
-
-> **MinIO 现状提醒（2026-09）**：MinIO 已归档其开源社区版，官方二进制从 `dl.min.io` 全部下架
-> （返回 `410 Gone`），镜像仓库也从 Docker Hub 迁到 `quay.io/minio/minio`。本文档已按此更新。
-> 若你追求长期维护的替代品，可关注 SeaweedFS、Garage，或直接用云厂商的 OSS/COS。
+> Docker 与 MinIO 的概念说明不在这里展开，本节只讲**怎么装、怎么用**。
+> 需要理解原理时自查即可，装的过程不依赖对原理的理解。
 
 ### 15.1 前置条件：systemd
 
@@ -1036,44 +990,29 @@ mc ls --recursive local/datasets        # 递归列出对象
 
 ### 15.5 用 Python 读写（boto3）
 
-**boto3 是 AWS 官方 Python SDK**，是 Python 里访问 S3 的事实标准。因为 MinIO 兼容 S3 协议，
-所以同一份 boto3 代码既能连本地 MinIO，也能连云端 S3 / 腾讯 COS / 阿里 OSS（后者需指定各自的
-`endpoint_url`），**基本不用改代码** —— 这是自建 MinIO 最实际的收益。
+`boto3` 是 AWS 官方 Python SDK，也用来连 MinIO（S3 协议兼容）。
 
-#### 先解决"装不上"的问题
+#### 环境准备：必须用虚拟环境
 
-Ubuntu 24.04 起，系统 Python 有 **PEP 668 保护**，直接 `pip install` 会报：
-
-```
-error: externally-managed-environment
-```
-
-这不是权限问题、也不是缺包，而是发行版**故意**拦下的：往系统 Python 里装包会污染系统工具依赖
-（很多系统命令靠 Python 运行），`apt` 升级时容易把系统搞坏。
-
-**正确做法是用虚拟环境**（这也该是你做项目的默认习惯）：
+Ubuntu 24.04 起系统 Python 有 **PEP 668 保护**，直接 `pip install` 会报
+`error: externally-managed-environment`。这不是权限或缺包问题，是发行版故意拦的
+（往系统 Python 装包会污染系统工具依赖）。**用虚拟环境绕过**：
 
 ```bash
 sudo apt install -y python3-venv          # 只需装一次
 
 cd ~/myproject                            # 进你的项目目录
-python3 -m venv .venv                     # 创建虚拟环境（会生成 .venv 目录）
-source .venv/bin/activate                 # 激活，提示符前会出现 (.venv)
-pip install boto3                         # 现在装到隔离环境里，不再被拦
+python3 -m venv .venv                     # 创建虚拟环境（生成 .venv 目录）
+source .venv/bin/activate                 # 激活，提示符前出现 (.venv)
+pip install boto3                         # 装到隔离环境，不再被拦
 ```
 
-> `.venv` 要加进 `.gitignore`，不要提交。
->
-> 以后每次开新终端进项目，都要先 `source .venv/bin/activate`。
-> 用 `deactivate` 退出。装了 `direnv` 可以自动激活，免去手动。
+> `.venv` 要加进 `.gitignore`。以后每次开新终端进项目，先 `source .venv/bin/activate`；
+> `deactivate` 退出。装了 `direnv` 可自动激活。
 
-**如果你确实只是想快速试一下**（不推荐长期这样）：
+也可以不建 venv、明确承担风险：`pip install --break-system-packages boto3`。
 
-```bash
-pip install --break-system-packages boto3   # 明确表示"我知道风险"
-```
-
-#### 连接 MinIO 的最小示例
+#### 连接 MinIO
 
 ```python
 import boto3
@@ -1089,11 +1028,9 @@ s3 = boto3.client(
 s3.create_bucket(Bucket="datasets")
 s3.upload_file("result.tsv", "datasets", "result.tsv")
 
-# 列出桶里所有对象
 for obj in s3.list_objects_v2(Bucket="datasets").get("Contents", []):
     print(obj["Key"], obj["Size"])
 
-# 下载回来
 s3.download_file("datasets", "result.tsv", "./downloaded.tsv")
 ```
 
