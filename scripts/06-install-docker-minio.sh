@@ -16,6 +16,13 @@ DOCKER_MIRROR="https://mirrors.aliyun.com/docker-ce/linux/ubuntu"
 MINIO_ROOT_USER="${MINIO_ROOT_USER:-minioadmin}"
 MINIO_ROOT_PASSWORD="${MINIO_ROOT_PASSWORD:-minioadmin}"
 
+# NOTE (2026-09): MinIO has archived its open-source community edition and pulled
+# all binaries from dl.min.io (every path now returns HTTP 410 Gone).
+# The image on Docker Hub also can no longer be relied on for pulls; the
+# maintained registry is quay.io. Version pinned to the last official community
+# release instead of 'latest', so the tag cannot silently change under you.
+MINIO_IMAGE="${MINIO_IMAGE:-quay.io/minio/minio:RELEASE.2025-09-07T16-13-09Z}"
+
 info() { printf '[INFO] %s\n' "$*"; }
 ok()   { printf '[ OK ] %s\n' "$*"; }
 warn() { printf '[WARN] %s\n' "$*" >&2; }
@@ -98,8 +105,8 @@ else
     -e "MINIO_ROOT_USER=${MINIO_ROOT_USER}" \
     -e "MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD}" \
     --restart unless-stopped \
-    minio/minio server /data --console-address ":9001"
-  ok "minio started"
+    "$MINIO_IMAGE" server /data --console-address ":9001"
+  ok "minio started (image: $MINIO_IMAGE)"
 fi
 
 cat <<EOF

@@ -780,12 +780,15 @@ D 组做真实端到端调用，超时 180 秒。
 
 装 Docker Engine（走阿里云镜像源 + 国内 registry 镜像），并以容器方式拉起 MinIO 对象存储。
 幂等：已装则跳过安装，容器已存在则跳过创建；首次运行若用户尚未进 `docker` 组，会自动切 `sudo` 完成。
-用法：
+MinIO 镜像默认取 `quay.io/minio/minio:RELEASE.2025-09-07T16-13-09Z`（版本已固定，
+不受 `latest` 漂移影响；可用 `MINIO_IMAGE` 环境变量覆盖）。用法：
 
 ```bash
 bash scripts/06-install-docker-minio.sh
 # 自定义账号密码
 MINIO_ROOT_USER=admin MINIO_ROOT_PASSWORD='换个强密码' bash scripts/06-install-docker-minio.sh
+# 换镜像源（例如内网私有 registry）
+MINIO_IMAGE=registry.example.com/minio:tag bash scripts/06-install-docker-minio.sh
 ```
 
 详见 [第 15 节](#15-docker-与-minio-对象存储可选)。
@@ -860,6 +863,55 @@ MINIO_ROOT_USER=admin MINIO_ROOT_PASSWORD='换个强密码' bash scripts/06-inst
 这一节是可选的**加装件**：前面的编程工具链路（方案 A / B）跑通后，如果项目需要容器化运行、
 或需要一个本地 S3 兼容的对象存储（存模型权重、数据集、构建产物、备份），再按本节执行。
 
+### 15.0 先搞懂这两个东西是什么
+
+跳过概念直接敲命令，出问题时无从判断。这里用最小篇幅讲清**机制**。
+
+**Docker 解决的是"环境不可复现"。**
+
+传统做法是在一台机器上手工装依赖（Python 版本、系统库、CUDA……），换台机器或过几个月重装，
+版本一变就跑不起来。Docker 的做法是把"应用 + 它依赖的整个用户空间"打包成一个可分发的东西
+——**镜像**，运行时再把它跑起来——**容器**。
+
+- **镜像**是**分层**的只读文件包，每层有独立的 sha256。你在 Dockerfile 里写一条指令就生成一层。
+  因为按内容寻址，相同内容只存一份、拉取时只下缺失的层（和 git 按对象存储是一个思路）。
+- **容器**不是虚拟机。**它和宿主共享同一个内核**，没有第二个操作系统。Docker 只是用内核的几个
+  能力把进程能看到的世界改小了：`namespaces` 隔离视图（独立的进程树、网卡、挂载点）、
+  `cgroups` 限制 CPU/内存用量、`capabilities` 削减权限、`pivot_root` 换根目录。
+  所以容器启动是毫秒级，而虚拟机要几十秒。
+
+自己验证（装完 Docker 后跑）：
+
+```bash
+docker run --rm alpine uname -r    # 内核版本
+uname -r                           # 两个输出完全相同 → 证明共享同一个内核
+```
+
+**MinIO 解决的是"数据该放哪"。**
+
+MinIO 是**自建的对象存储**，接口与亚马逊 S3 **完全兼容**。核心抽象只有两个：
+
+| 概念 | 说明 |
+|---|---|
+| Bucket（桶） | 顶层容器，名字全局唯一、全小写。类似"一个硬盘分区"或"一个顶级目录" |
+| Object（对象） | 桶里的文件，以 `key`（路径字符串）定位。没有真正的目录层级，`a/b/c.txt` 只是个名字 |
+
+它的价值在于**把数据从容器/机器的生命周期里解耦出来**：
+
+- 容器是可丢弃的 —— 删了重建，里面写的东西全没了
+- 数据不该跟着容器一起消失 —— 所以放到 MinIO（或挂载的宿主机目录）里
+
+对你做科研的典型用途：
+
+- 数据集、模型权重、中间产物统一存放，换机器/换容器都能直接取
+- 多个实验共享同一份数据，不用互相拷贝几十 GB
+- 训练脚本用 `boto3` 读写，和以后真要上云（AWS S3、腾讯 COS、阿里 OSS）的代码**几乎不用改**
+  —— 这是"S3 兼容"最实际的好处：本地调试、云端运行，同一套代码
+
+> **MinIO 现状提醒（2026-09）**：MinIO 已归档其开源社区版，官方二进制从 `dl.min.io` 全部下架
+> （返回 `410 Gone`），镜像仓库也从 Docker Hub 迁到 `quay.io/minio/minio`。本文档已按此更新。
+> 若你追求长期维护的替代品，可关注 SeaweedFS、Garage，或直接用云厂商的 OSS/COS。
+
 ### 15.1 前置条件：systemd
 
 Docker 守护进程靠 `systemctl` 管理，所以 WSL 里必须启用 systemd。
@@ -924,21 +976,144 @@ MINIO_ROOT_USER=admin MINIO_ROOT_PASSWORD='你的强密码' bash scripts/06-inst
 
 ### 15.4 用 mc 客户端连一下（可选）
 
+> **2026-09 重要变更**：MinIO 已归档开源社区版，`dl.min.io` 上所有二进制**均已下架**
+> （所有路径返回 `HTTP 410 Gone`，包括 `archive/` 子路径）。官方镜像仓库也从 Docker Hub
+> 迁到 `quay.io/minio/minio`。因此**不要再用 `curl https://dl.min.io/...` 下载 mc**。
+> 下面给出两条仍然可用的路径。
+
+**路径一：用 Docker 跑 mc（推荐，无需下载）**
+
+你已经有 Docker 了，直接把 mc 当容器跑，等于零安装：
+
 ```bash
-# 装 MinIO 官方客户端并连本地实例
-curl -fsSL https://dl.min.io/client/mc/release/linux-amd64/mc -o /tmp/mc && sudo install -m 755 /tmp/mc /usr/local/bin/mc
-mc alias set local http://localhost:9000 minioadmin minioadmin
-mc mb local/datasets          # 建一个桶
-mc ls local                   # 列出桶
+# 连本地 MinIO
+docker run --rm --network host quay.io/minio/mc \
+  alias set local http://localhost:9000 minioadmin minioadmin
+
+# 建桶、列桶
+docker run --rm --network host quay.io/minio/mc mb local/datasets
+docker run --rm --network host quay.io/minio/mc ls local
 ```
 
-### 15.5 从 Windows 侧访问
+嫌每次敲这么长，就用别名：
+
+```bash
+# 追加到 ~/.bashrc
+echo "alias mc='docker run --rm -it --network host -v \$HOME/.mc:/root/.mc quay.io/minio/mc'" >> ~/.bashrc
+source ~/.bashrc
+mc alias set local http://localhost:9000 minioadmin minioadmin
+mc mb local/datasets
+mc cp ./result.tsv local/datasets/
+```
+
+挂载 `~/.mc` 是为了让别名配置持久化，否则每次 `docker run` 都是全新容器，alias 会丢。
+
+**路径二：从 GitHub Releases 下二进制（需代理）**
+
+MinIO 的 GitHub 仓库仍保留历史 release，最后一个带完整资产的版本是
+`RELEASE.2025-08-13T08-35-41Z`：
+
+```bash
+V=RELEASE.2025-08-13T08-35-41Z
+curl -fL -o /tmp/mc "https://github.com/minio/mc/releases/download/${V}/mc.linux-amd64.${V}"
+sudo install -m 755 /tmp/mc /usr/local/bin/mc
+mc --version
+```
+
+> GitHub 直连在国内不稳定（实测 30MB 的资产传输会中断）。要走这条路径，
+> 请在 Windows 侧开着代理并让 WSL 用上它（或先下载再拷进 WSL）。
+
+**建桶与传文件（两条路径通用）**
+
+```bash
+mc alias set local http://localhost:9000 minioadmin minioadmin
+mc mb local/datasets                    # 建桶，桶名全局唯一、只能小写
+mc ls local                             # 列出所有桶
+mc cp ./result.tsv local/datasets/      # 上传单个文件
+mc mirror ./data local/datasets/raw     # 整目录同步（增量，只传变化的）
+mc ls --recursive local/datasets        # 递归列出对象
+```
+
+### 15.5 用 Python 读写（boto3）
+
+**boto3 是 AWS 官方 Python SDK**，是 Python 里访问 S3 的事实标准。因为 MinIO 兼容 S3 协议，
+所以同一份 boto3 代码既能连本地 MinIO，也能连云端 S3 / 腾讯 COS / 阿里 OSS（后者需指定各自的
+`endpoint_url`），**基本不用改代码** —— 这是自建 MinIO 最实际的收益。
+
+#### 先解决"装不上"的问题
+
+Ubuntu 24.04 起，系统 Python 有 **PEP 668 保护**，直接 `pip install` 会报：
+
+```
+error: externally-managed-environment
+```
+
+这不是权限问题、也不是缺包，而是发行版**故意**拦下的：往系统 Python 里装包会污染系统工具依赖
+（很多系统命令靠 Python 运行），`apt` 升级时容易把系统搞坏。
+
+**正确做法是用虚拟环境**（这也该是你做项目的默认习惯）：
+
+```bash
+sudo apt install -y python3-venv          # 只需装一次
+
+cd ~/myproject                            # 进你的项目目录
+python3 -m venv .venv                     # 创建虚拟环境（会生成 .venv 目录）
+source .venv/bin/activate                 # 激活，提示符前会出现 (.venv)
+pip install boto3                         # 现在装到隔离环境里，不再被拦
+```
+
+> `.venv` 要加进 `.gitignore`，不要提交。
+>
+> 以后每次开新终端进项目，都要先 `source .venv/bin/activate`。
+> 用 `deactivate` 退出。装了 `direnv` 可以自动激活，免去手动。
+
+**如果你确实只是想快速试一下**（不推荐长期这样）：
+
+```bash
+pip install --break-system-packages boto3   # 明确表示"我知道风险"
+```
+
+#### 连接 MinIO 的最小示例
+
+```python
+import boto3
+
+s3 = boto3.client(
+    "s3",
+    endpoint_url="http://localhost:9000",   # 关键：不写这行会去连亚马逊，必然失败
+    aws_access_key_id="minioadmin",
+    aws_secret_access_key="minioadmin",
+    region_name="us-east-1",                # MinIO 不校验，但不能为空
+)
+
+s3.create_bucket(Bucket="datasets")
+s3.upload_file("result.tsv", "datasets", "result.tsv")
+
+# 列出桶里所有对象
+for obj in s3.list_objects_v2(Bucket="datasets").get("Contents", []):
+    print(obj["Key"], obj["Size"])
+
+# 下载回来
+s3.download_file("datasets", "result.tsv", "./downloaded.tsv")
+```
+
+**三个必踩的坑**：
+
+| 坑 | 现象 | 解法 |
+|---|---|---|
+| 漏写 `endpoint_url` | 连不上 / 卡住 / 报凭据无效 | 必须显式指定 |
+| 桶名含大写或下划线 | `InvalidBucketName` | 桶名只能小写字母、数字、`-`、`.` |
+| 用 `Path` 对象当参数 | 类型报错 | 传字符串，或 `str(path)` |
+
+配了 `mc` 之后，**训练脚本用 boto3、手动检查用 `mc`** 是最顺手的组合。
+
+### 15.6 从 Windows 侧访问
 
 WSL2 默认情况下 Windows 可以通过 `localhost` 直接访问 WSL 内监听的端口，
 所以浏览器打开 `http://localhost:9001` 就能进控制台。
 若不通，用 WSL 的 IP 访问：`wsl hostname -I` 拿到地址后替换 `localhost`。
 
-### 15.6 常见问题
+### 15.7 常见问题
 
 | 现象 | 原因 | 处理 |
 |---|---|---|
@@ -946,9 +1121,11 @@ WSL2 默认情况下 Windows 可以通过 `localhost` 直接访问 WSL 内监听
 | `docker: command not found` | 装完 PATH 未刷新 | 重开终端，或 `source ~/.bashrc` |
 | `permission denied ... /var/run/docker.sock` | 用户还没进 docker 组 | `newgrp docker` 或重开终端 |
 | `systemctl` 报 "System has not been booted with systemd" | WSL 未启用 systemd | 同上：`/etc/wsl.conf` 写 `[boot]\nsystemd=true` 后 `wsl --shutdown` |
-| `docker pull` 卡住 / 超时 | 直连 Docker Hub 不通 | 脚本已配 daemon.json 镜像；仍慢可换源后 `sudo systemctl restart docker` |
+| `curl` 下载 mc 报 **410 Gone** | MinIO 开源版二进制已下架 | 改用第 15.4 节的容器方式，或 GitHub Releases 方式 |
+| `docker pull` 卡住 / 超时 | 直连 Docker Hub 不通 | 脚本已配 daemon.json 镜像；MinIO 本体走 `quay.io` 不受影响 |
 | 9000 / 9001 端口被占 | 端口冲突 | `ss -tlnp \| grep -E '9000\|9001'` 找占用者；或改 `-p` 映射后重建容器 |
 | Windows 浏览器打不开 9001 | 端口代理异常 | `wsl --shutdown` 重进；或用 `wsl hostname -I` 的 IP |
+| `pip install boto3` 报 `externally-managed-environment` | Ubuntu 24.04+ 禁止往系统 Python 装包 | 用虚拟环境（见下） |
 
 > **资源提醒**：WSL2 的内存/CPU 上限由 `%USERPROFILE%\.wslconfig` 控制。
 > 跑容器建议给到 4GB 以上内存，改完 `.wslconfig` 要 `wsl --shutdown` 才生效。
@@ -969,7 +1146,8 @@ WSL2 默认情况下 Windows 可以通过 `localhost` 直接访问 WSL 内监听
 | 方案 B 服务 | OpenCode Go（Key 前缀 `sk-go-`） |
 | 方案 B 模型 | GLM-5.2 / Kimi K3 / Qwen3.8 Max / DeepSeek V4 Flash / GPT-5.6 Luna |
 | 可选：容器运行时 | Docker Engine（`docker-ce`，阿里云镜像源安装） |
-| 可选：对象存储 | MinIO（容器化，S3 兼容；`9000` API / `9001` 控制台） |
+| 可选：对象存储 | MinIO（`quay.io/minio/minio:RELEASE.2025-09-07T16-13-09Z`，S3 兼容；`9000` API / `9001` 控制台） |
+| 可选：Python SDK | boto3（需装在虚拟环境内，绕开 PEP 668 保护） |
 
 > **实机验证**：上述组合于 2026-09-20 在一台真实 Windows 11 机器上从零跑通全流程
 > （WSL2 → Ubuntu → Claude Code CLI → DeepSeek 端到端对话），
