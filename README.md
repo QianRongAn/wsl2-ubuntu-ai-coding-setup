@@ -31,6 +31,7 @@
 - [12. 排障手册](#12-排障手册)
 - [13. 安全须知](#13-安全须知)
 - [14. 使用手册](#14-使用手册)
+- [15. Docker 与 MinIO 对象存储（可选）](#15-docker-与-minio-对象存储可选)
 
 ---
 
@@ -250,7 +251,8 @@ wsl-ubuntu-setup/
 │   ├── 02-setup-claude.sh           ← 方案 A：Node.js + Claude Code + DeepSeek 配置
 │   ├── 03-verify.sh                 ← 方案 A：逐项自动化验证
 │   ├── 04-verify.ps1                ← Windows 执行：概览验证
-│   └── 05-install-opencode.sh       ← 方案 B：装 OpenCode + 写 OpenCode Go 鉴权
+│   ├── 05-install-opencode.sh       ← 方案 B：装 OpenCode + 写 OpenCode Go 鉴权
+│   └── 06-install-docker-minio.sh   ← 可选：装 Docker + 起 MinIO 对象存储
 ├── config/
 │   └── deepseek-settings.example.json   ← DeepSeek 配置模板（Key 为占位符）
 └── docs/
@@ -835,6 +837,106 @@ D 组做真实端到端调用，超时 180 秒。
 
 ---
 
+## 15. Docker 与 MinIO 对象存储（可选）
+
+这一节是可选的**加装件**：前面的编程工具链路（方案 A / B）跑通后，如果项目需要容器化运行、
+或需要一个本地 S3 兼容的对象存储（存模型权重、数据集、构建产物、备份），再按本节执行。
+
+### 15.1 前置条件：systemd
+
+Docker 守护进程靠 `systemctl` 管理，所以 WSL 里必须启用 systemd。
+**脚本会自己检查**：若不是 systemd 启动的，它会自动往 `/etc/wsl.conf` 写入配置（并备份原文件），
+然后提示你去 Windows 侧执行 `wsl --shutdown`，重进后再跑一次脚本即可。
+
+手动确认：
+
+```bash
+ps -p 1 -o comm=        # 输出应为 systemd
+```
+
+> 若你的机器是全新装的（用本仓库 `01-install-wsl-ubuntu.ps1` 装的），
+> `/etc/wsl.conf` 默认不含 systemd 配置，**首次需要按上面提示重启一次 WSL**。
+
+### 15.2 一键脚本
+
+```bash
+# 在 WSL 的 Ubuntu 里执行
+cd ~/wsl-ubuntu-setup          # 或你 clone 下来的仓库目录
+bash scripts/06-install-docker-minio.sh
+```
+
+脚本做了两件事，都可重复执行（幂等）：
+
+| 步骤 | 动作 |
+|---|---|
+| 0. systemd | 检查 PID 1 是否为 systemd；不是则自动写入 `/etc/wsl.conf` 并提示重启 |
+| 1. Docker | 装 `docker-ce` + `containerd` + `buildx` + `compose` 插件；启用并自启 `docker` 服务；把当前用户加入 `docker` 组；写入 `/etc/docker/daemon.json` 国内 registry 镜像 |
+| 2. MinIO | 以容器方式启动 MinIO，映射 `9000`（S3 API）/ `9001`（Web 控制台），数据落在 `~/minio/data`，`--restart unless-stopped` 保证宿主重启后自动拉起 |
+
+### 15.3 装完怎么用
+
+```bash
+newgrp docker          # 让 docker 组成员身份生效（或直接重开终端）
+
+docker --version                        # 看版本
+docker run --rm hello-world             # 冒烟测试（走镜像加速拉取）
+docker ps                               # 应看到 minio 容器在跑
+
+docker compose version                  # compose 插件版本
+```
+
+> 注意：**第一次运行脚本时你还没进 `docker` 组**，脚本会自动改用 `sudo docker` 完成 MinIO 创建，
+> 所以不会中途失败；但你之后手动敲 `docker` 命令前，必须先 `newgrp docker` 或重开终端。
+
+MinIO 访问入口：
+
+| 入口 | 地址 | 用途 |
+|---|---|---|
+| S3 API | `http://localhost:9000` | SDK / `aws-cli` / `mc` 连这里 |
+| Web 控制台 | `http://localhost:9001` | 浏览器登录，建桶、传文件 |
+
+默认账号密码都是 `minioadmin`（**仅适合本机试玩，务必改掉**）。自定义方式：
+
+```bash
+MINIO_ROOT_USER=admin MINIO_ROOT_PASSWORD='你的强密码' bash scripts/06-install-docker-minio.sh
+```
+
+> 已有 `minio` 容器时脚本会跳过创建。要改密码，得先删掉旧容器再重跑：
+> `docker rm -f minio`。
+
+### 15.4 用 mc 客户端连一下（可选）
+
+```bash
+# 装 MinIO 官方客户端并连本地实例
+curl -fsSL https://dl.min.io/client/mc/release/linux-amd64/mc -o /tmp/mc && sudo install -m 755 /tmp/mc /usr/local/bin/mc
+mc alias set local http://localhost:9000 minioadmin minioadmin
+mc mb local/datasets          # 建一个桶
+mc ls local                   # 列出桶
+```
+
+### 15.5 从 Windows 侧访问
+
+WSL2 默认情况下 Windows 可以通过 `localhost` 直接访问 WSL 内监听的端口，
+所以浏览器打开 `http://localhost:9001` 就能进控制台。
+若不通，用 WSL 的 IP 访问：`wsl hostname -I` 拿到地址后替换 `localhost`。
+
+### 15.6 常见问题
+
+| 现象 | 原因 | 处理 |
+|---|---|---|
+| 脚本提示 systemd 未启用后退出 | WSL 默认不是 systemd 启动 | 按提示在 Windows 侧 `wsl --shutdown`，重进后重跑脚本 |
+| `docker: command not found` | 装完 PATH 未刷新 | 重开终端，或 `source ~/.bashrc` |
+| `permission denied ... /var/run/docker.sock` | 用户还没进 docker 组 | `newgrp docker` 或重开终端 |
+| `systemctl` 报 "System has not been booted with systemd" | WSL 未启用 systemd | 同上：`/etc/wsl.conf` 写 `[boot]\nsystemd=true` 后 `wsl --shutdown` |
+| `docker pull` 卡住 / 超时 | 直连 Docker Hub 不通 | 脚本已配 daemon.json 镜像；仍慢可换源后 `sudo systemctl restart docker` |
+| 9000 / 9001 端口被占 | 端口冲突 | `ss -tlnp \| grep -E '9000\|9001'` 找占用者；或改 `-p` 映射后重建容器 |
+| Windows 浏览器打不开 9001 | 端口代理异常 | `wsl --shutdown` 重进；或用 `wsl hostname -I` 的 IP |
+
+> **资源提醒**：WSL2 的内存/CPU 上限由 `%USERPROFILE%\.wslconfig` 控制。
+> 跑容器建议给到 4GB 以上内存，改完 `.wslconfig` 要 `wsl --shutdown` 才生效。
+
+---
+
 ## 附：验证过的版本组合
 
 | 组件 | 版本 |
@@ -848,6 +950,8 @@ D 组做真实端到端调用，超时 180 秒。
 | 方案 B 编程工具 | OpenCode `opencode-ai`（二进制 `opencode-linux-x64`） |
 | 方案 B 服务 | OpenCode Go（Key 前缀 `sk-go-`） |
 | 方案 B 模型 | GLM-5.2 / Kimi K3 / Qwen3.8 Max / DeepSeek V4 Flash / GPT-5.6 Luna |
+| 可选：容器运行时 | Docker Engine（`docker-ce`，阿里云镜像源安装） |
+| 可选：对象存储 | MinIO（容器化，S3 兼容；`9000` API / `9001` 控制台） |
 
 > **实机验证**：上述组合于 2026-09-20 在一台真实 Windows 11 机器上从零跑通全流程
 > （WSL2 → Ubuntu → Claude Code CLI → DeepSeek 端到端对话），
