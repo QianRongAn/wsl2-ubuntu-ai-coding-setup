@@ -319,6 +319,10 @@ wsl-ubuntu-setup/
 │
 └─ 阶段五 ─ 03-verify.sh / 04-verify.ps1
        版本 → 配置 → 网络 → 端到端真实调用
+
+┌─ 可选加装 ─ WSL 内执行 06-install-docker-minio.sh（第 15 节）
+│     检查/启用 systemd → 装 docker-ce → 起 MinIO 容器（9000 / 9001）
+└    （与方案 A / B 互不依赖，需要容器或对象存储时再装）
 ```
 
 ---
@@ -771,6 +775,20 @@ D 组做真实端到端调用，超时 180 秒。
 方案 B 专用：安装 OpenCode CLI（`opencode-ai`，npmmirror 镜像），并把 OpenCode Go 的 Key
 写入 `~/.local/share/opencode/auth.json`（权限 600）。用法：
 `OPENCODE_GO_API_KEY='sk-go-xxx' bash 05-install-opencode.sh`，不带 Key 时交互式询问。
+
+### `scripts/06-install-docker-minio.sh`（WSL 内，可选）
+
+装 Docker Engine（走阿里云镜像源 + 国内 registry 镜像），并以容器方式拉起 MinIO 对象存储。
+幂等：已装则跳过安装，容器已存在则跳过创建；首次运行若用户尚未进 `docker` 组，会自动切 `sudo` 完成。
+用法：
+
+```bash
+bash scripts/06-install-docker-minio.sh
+# 自定义账号密码
+MINIO_ROOT_USER=admin MINIO_ROOT_PASSWORD='换个强密码' bash scripts/06-install-docker-minio.sh
+```
+
+详见 [第 15 节](#15-docker-与-minio-对象存储可选)。
 
 ---
 
